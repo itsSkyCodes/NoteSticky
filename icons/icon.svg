@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="2" dy="5" stdDeviation="4" flood-opacity="0.25" />
+    </filter>
+    <linearGradient id="noteGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFF275" />
+      <stop offset="100%" stop-color="#FFDE38" />
+    </linearGradient>
+    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E5BF25" />
+      <stop offset="60%" stop-color="#FFF5A5" />
+      <stop offset="100%" stop-color="#FFFBE0" />
+    </linearGradient>
+    <linearGradient id="pinGrad" x1="20%" y1="20%" x2="80%" y2="80%">
+      <stop offset="0%" stop-color="#FF7676" />
+      <stop offset="60%" stop-color="#EF4444" />
+      <stop offset="100%" stop-color="#991B1B" />
+    </linearGradient>
+  </defs>
+
+  <!-- Sticky Note Paper with folded bottom-right corner -->
+  <path d="M 18,16 
+           H 110 
+           V 80 
+           L 80,110 
+           H 18 
+           Z" 
+        fill="url(#noteGrad)" 
+        filter="url(#shadow)" 
+        rx="4" />
+
+  <!-- Ruled subtle note lines -->
+  <line x1="30" y1="46" x2="98" y2="46" stroke="#E6C227" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+  <line x1="30" y1="64" x2="98" y2="64" stroke="#E6C227" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+  <line x1="30" y1="82" x2="68" y2="82" stroke="#E6C227" stroke-width="3" stroke-linecap="round" opacity="0.6" />
+
+  <!-- Folded Corner Triangle -->
+  <path d="M 80,80 L 110,80 L 80,110 Z" fill="url(#foldGrad)" />
+  <path d="M 80,80 L 110,80 L 80,110 Z" fill="none" stroke="#D4A712" stroke-width="1.5" />
+
+  <!-- Red Pushpin -->
+  <circle cx="64" cy="18" r="8" fill="url(#pinGrad)" filter="url(#shadow)" />
+  <circle cx="62" cy="16" r="3" fill="#FFFFFF" opacity="0.5" />
+</svg>
