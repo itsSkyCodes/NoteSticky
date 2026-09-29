@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NoteSticky - Interactive Extension Test Page</title>
+  <style>
+    :root {
+      --primary: #f59e0b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .badge {
+      display: inline-block;
+      background: #fef3c7;
+      color: #b45309;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.subtitle {
+      font-size: 18px;
+      color: var(--text-muted);
+    }
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    }
+    .card-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+    .card h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    .card p {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .instruction-box {
+      background: #fff;
+      border: 2px dashed #cbd5e1;
+      border-radius: 16px;
+      padding: 30px;
+      margin-bottom: 40px;
+    }
+    .instruction-box h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    ol {
+      margin-left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 15px;
+    }
+    kbd {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 13px;
+      font-family: inherit;
+      font-weight: 600;
+    }
+    .sample-content {
+      background: #ffffff;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      padding: 28px;
+    }
+    .sample-content h2 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .sample-content p {
+      margin-bottom: 16px;
+      color: #334155;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <span class="badge">Chrome Extension Test Arena</span>
+      <h1>NoteSticky Test Environment</h1>
+      <p class="subtitle">Use this page to test pinning, dragging, checklists, and popup dashboard sync!</p>
+    </header>
+
+    <div class="instruction-box">
+      <h2>🚀 How to Test Sticky Notes on this Page</h2>
+      <ol>
+        <li>Look at the bottom right corner of your screen — you should see the <strong>Floating Quick Toolbar</strong> (➕ New Note).</li>
+        <li>Click <strong>"➕ New Note"</strong> to create a sticky note anywhere on this page.</li>
+        <li>Try dragging the note by its top header bar. Notice how smooth and responsive it feels!</li>
+        <li>Click <strong>🎨</strong> to change its color to Mint, Coral, Lavender, Ocean Sky, or Dark Slate.</li>
+        <li>Click <strong>☑️</strong> to switch to interactive checklist/todo mode. Add some tasks and check them off!</li>
+        <li>Click <strong>👁️</strong> on any sticky note header to completely hide <em>only that specific sticky note popup</em>. To show it again, click the <strong>Hide/Show (👁️ / 🙈)</strong> button in the Floating Quick Toolbar. When popups overlap, clicking any sticky note underneath immediately brings it to the top and makes it active!</li>
+        <li>Press <kbd>Alt+Shift+N</kbd> (or <kbd>MacCtrl+Shift+N</kbd>) to spawn a new note via keyboard shortcut.</li>
+        <li>Select any text on this page, right-click, and choose <strong>"Create Sticky Note from..."</strong> from the context menu.</li>
+        <li>Open the extension icon in your Chrome toolbar to view the full <strong>Popup Dashboard</strong>, search your notes, or jump straight to them!</li>
+      </ol>
+    </div>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">📌</div>
+        <h3>On-Page Persistence</h3>
+        <p>Sticky notes stay right where you placed them on this URL, even after you refresh or close Chrome.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🛡️</div>
+        <h3>Zero CSS Conflicts</h3>
+        <p>Built with Shadow DOM so no webpage CSS leaks into your notes, and your notes never break webpage styles.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <h3>Checklists & Rich Notes</h3>
+        <p>Effortlessly toggle between free-form thoughts and clickable todo lists with progress tracking.</p>
+      </div>
+    </div>
+
+    <div class="sample-content">
+      <h2>Article Sample Section (Great for highlighting)</h2>
+      <p>
+        "Deep work is the ability to focus without distraction on a cognitively demanding task. It's a skill that allows you to quickly master complicated information and produce better results in less time. Deep work will make you better at what you do and provide the sense of true fulfillment that comes from craftsmanship."
+      </p>
+      <p>
+        Select the paragraph above, right-click, and test creating an instant sticky note directly from your selection!
+      </p>
+    </div>
+  </div>
+
+  <!-- Standalone Testing Polyfill so demo.html works in any browser directly -->
+  <script>
+    if (!window.chrome || !window.chrome.storage) {
+      window.chrome = {
+        runtime: {
+          getURL: function(path) { return path; },
+          onMessage: { addListener: function() {} },
+          sendMessage: function() { return Promise.resolve({ success: true }); }
+        },
+        storage: {
+          local: {
+            get: function(keys, cb) {
+              const res = {};
+              (keys || []).forEach(k => {
+                try {
+                  const val = localStorage.getItem('notesticky_' + k);
+                  if (val) res[k] = JSON.parse(val);
+                } catch(e) {}
+              });
+              if (cb) setTimeout(() => cb(res), 10);
+            },
+            set: function(obj, cb) {
+              Object.keys(obj || {}).forEach(k => {
+                localStorage.setItem('notesticky_' + k, JSON.stringify(obj[k]));
+              });
+              if (cb) setTimeout(cb, 10);
+            }
+          },
+          onChanged: { addListener: function() {} }
+        }
+      };
+    }
+  </script>
+  <script src="content/content.js"></script>
+</body>
+</html>
