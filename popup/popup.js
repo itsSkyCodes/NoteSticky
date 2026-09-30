@@ -78,6 +78,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Listen for storage changes from webpage content scripts or other tabs
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    let shouldReRender = false;
+
+    if (changes.notes) {
+      allNotes = changes.notes.newValue || [];
+      shouldReRender = true;
+    }
+
+    if (changes.settings) {
+      currentSettings = { ...currentSettings, ...changes.settings.newValue };
+      updateHeaderVisIcon(currentSettings.notesVisible !== false);
+      syncSettingsUI();
+      applyTheme(currentSettings.theme);
+    }
+
+    if (shouldReRender) {
+      render();
+    }
+  });
+
   // Sync settings UI in modal
   function syncSettingsUI() {
     settingFloatingBtn.checked = !!currentSettings.showFloatingButton;
@@ -235,6 +257,17 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
         </div>
 
+        <!-- Inline Card Color Palette Popover -->
+        <div class="card-palette-popover">
+          <div class="card-color-dot ${note.color === 'yellow' ? 'active' : ''}" data-color="yellow" style="background: #FEF08A;" title="Yellow"></div>
+          <div class="card-color-dot ${note.color === 'mint' ? 'active' : ''}" data-color="mint" style="background: #BBF7D0;" title="Mint"></div>
+          <div class="card-color-dot ${note.color === 'coral' ? 'active' : ''}" data-color="coral" style="background: #FECDD3;" title="Coral"></div>
+          <div class="card-color-dot ${note.color === 'lavender' ? 'active' : ''}" data-color="lavender" style="background: #E9D5FF;" title="Lavender"></div>
+          <div class="card-color-dot ${note.color === 'sky' ? 'active' : ''}" data-color="sky" style="background: #BAE6FD;" title="Sky"></div>
+          <div class="card-color-dot ${note.color === 'peach' ? 'active' : ''}" data-color="peach" style="background: #FED7AA;" title="Peach"></div>
+          <div class="card-color-dot ${note.color === 'slate' ? 'active' : ''}" data-color="slate" style="background: #1E293B;" title="Slate"></div>
+        </div>
+
         ${contentHtml}
 
         <div class="note-card-footer">
@@ -281,23 +314,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       });
 
-      // Change Color Cycle
-      card.querySelector('.btn-card-color').addEventListener('click', () => {
-        const palette = ['yellow', 'mint', 'coral', 'lavender', 'sky', 'peach', 'slate'];
-        const currentIdx = palette.indexOf(note.color || 'yellow');
-        const nextColor = palette[(currentIdx + 1) % palette.length];
+      // Palette toggle and selection
+      const colorBtn = card.querySelector('.btn-card-color');
+      const palettePopover = card.querySelector('.card-palette-popover');
+      if (colorBtn && palettePopover) {
+        colorBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Close other open card palettes
+          notesGrid.querySelectorAll('.card-palette-popover.open').forEach(p => {
+            if (p !== palettePopover) p.classList.remove('open');
+          });
+          palettePopover.classList.toggle('open');
+        });
 
-        note.color = nextColor;
-        note.updatedAt = Date.now();
-        saveAndRender();
-      });
+        palettePopover.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const dot = e.target.closest('.card-color-dot');
+          if (dot && dot.dataset.color) {
+            note.color = dot.dataset.color;
+            note.updatedAt = Date.now();
+            palettePopover.classList.remove('open');
+            saveAndRender();
+          }
+        });
+      }
 
-      // Delete
+      // Delete with Undo
       card.querySelector('.btn-card-delete').addEventListener('click', () => {
-        deleteNote(id);
+        deleteNoteWithUndo(id);
       });
     });
   }
+
+  // Close open card color palettes on click outside
+  document.addEventListener('pointerdown', (e) => {
+    const openPalettes = notesGrid.querySelectorAll('.card-palette-popover.open');
+    if (openPalettes.length === 0) return;
+    const path = e.composedPath();
+    openPalettes.forEach(popover => {
+      const card = popover.closest('.note-card');
+      const btn = card ? card.querySelector('.btn-card-color') : null;
+      if (!path.includes(popover) && (!btn || !path.includes(btn))) {
+        popover.classList.remove('open');
+      }
+    });
+  });
 
   // Jump to Note on Webpage
   function jumpToNote(note) {
@@ -314,17 +375,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Delete note
-  function deleteNote(id) {
-    allNotes = allNotes.filter(n => n.id !== id);
+  // Delete note with 4.5s Undo toast
+  let lastDeletedNote = null;
+  function deleteNoteWithUndo(id) {
+    const idx = allNotes.findIndex(n => n.id === id);
+    if (idx === -1) return;
+
+    lastDeletedNote = JSON.parse(JSON.stringify(allNotes[idx]));
+    allNotes.splice(idx, 1);
     saveAndRender();
-    showToast('Note removed');
+
+    showUndoToast('Note deleted', () => {
+      if (lastDeletedNote) {
+        allNotes.push(lastDeletedNote);
+        saveAndRender();
+        lastDeletedNote = null;
+      }
+    });
   }
 
   function saveAndRender() {
     chrome.storage.local.set({ notes: allNotes }, () => {
       render();
-      chrome.runtime.sendMessage({ action: 'UPDATE_BADGE' }).catch(() => {});
+      chrome.runtime.sendMessage({
+        action: 'UPDATE_BADGE',
+        tabId: currentTab ? currentTab.id : undefined,
+        url: currentUrl
+      }).catch(() => {});
     });
   }
 
@@ -523,12 +600,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       md += `- **Color:** ${note.color}\n\n`;
 
       if (note.isChecklist) {
-        md += `### Checklist:\n`;
+        md += `### Checklist:\n\n`;
         (note.checklistItems || []).forEach(item => {
-          md += `- [${item.done ? 'x' : ' '}] ${item.text}\n`;
+          md += `- [${item.done ? 'x' : ' '}] ${item.text || 'Untitled'}\n`;
         });
       } else {
-        md += `\`\`\`\n${note.text || ''}\n\`\`\`\n`;
+        md += `${(note.text || '').trim() || '_Empty note_'}\n`;
       }
       md += `\n---\n\n`;
     });
@@ -592,12 +669,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     URL.revokeObjectURL(url);
   }
 
+  let popupToastTimeout = null;
   function showToast(message) {
+    if (popupToastTimeout) clearTimeout(popupToastTimeout);
     popupToast.textContent = message;
-    popupToast.style.display = 'block';
-    setTimeout(() => {
+    popupToast.style.display = 'flex';
+    popupToastTimeout = setTimeout(() => {
       popupToast.style.display = 'none';
     }, 2400);
+  }
+
+  function showUndoToast(message, onUndo) {
+    if (popupToastTimeout) clearTimeout(popupToastTimeout);
+    popupToast.innerHTML = `
+      <span>${escapeHtml(message)}</span>
+      <button id="popup-undo-btn" class="toast-undo-btn">Undo</button>
+    `;
+    popupToast.style.display = 'flex';
+
+    const undoBtn = popupToast.querySelector('#popup-undo-btn');
+    if (undoBtn) {
+      undoBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (onUndo) onUndo();
+        popupToast.style.display = 'none';
+      });
+    }
+
+    popupToastTimeout = setTimeout(() => {
+      popupToast.style.display = 'none';
+      lastDeletedNote = null;
+    }, 4500);
   }
 
   function formatTimeAgo(ts) {

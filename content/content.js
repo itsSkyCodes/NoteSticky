@@ -18,7 +18,7 @@
     pinMode: 'page',
     fabMinimized: false
   };
-  let highestZIndex = 2147483640;
+  let highestZIndex = 10;
   let lastHiddenNoteId = null;
   let lastActiveNoteId = null;
   let hiddenNotesStack = [];
@@ -29,6 +29,17 @@
   const getCurrentUrl = () => window.location.href.split('#')[0];
   const getCurrentDomain = () => window.location.hostname;
   const getPageTitle = () => document.title || window.location.hostname;
+
+  // Normalize z-indexes to prevent unbounded growth and integer overflow
+  function normalizeZIndices() {
+    const sorted = [...notesData].sort((a, b) => (parseInt(a.zIndex, 10) || 0) - (parseInt(b.zIndex, 10) || 0));
+    sorted.forEach((n, idx) => {
+      n.zIndex = 10 + (idx * 2);
+      const el = notesMap.get(n.id);
+      if (el) el.style.zIndex = n.zIndex;
+    });
+    highestZIndex = sorted.length > 0 ? (10 + (sorted.length * 2)) : 10;
+  }
 
   // Initialize Shadow DOM Container
   function initContainer() {
@@ -55,6 +66,22 @@
     // Floating action button
     createFab();
 
+    // Single delegated listener for dismissing open color palettes across Shadow DOM without memory leaks
+    document.addEventListener('pointerdown', (e) => {
+      if (!shadowRoot) return;
+      const openPalettes = shadowRoot.querySelectorAll('.palette-popover.open');
+      if (openPalettes.length === 0) return;
+
+      const path = e.composedPath();
+      openPalettes.forEach(popover => {
+        const noteEl = popover.closest('.sticky-note');
+        const paletteBtn = noteEl ? noteEl.querySelector('#btn-palette') : null;
+        if (!path.includes(popover) && (!paletteBtn || !path.includes(paletteBtn))) {
+          popover.classList.remove('open');
+        }
+      });
+    });
+
     // Load initial data
     loadFromStorage();
   }
@@ -67,17 +94,30 @@
       }
       notesData = res.notes || [];
 
-      // Calculate initial highestZIndex from storage
-      notesData.forEach(n => {
+      // Normalize legacy/overflow z-indexes if present from prior versions
+      const hasLegacyZIndex = notesData.some(n => {
         const z = parseInt(n.zIndex, 10);
-        if (!isNaN(z) && z > highestZIndex) {
-          highestZIndex = z;
-        }
+        return isNaN(z) || z >= 100000;
       });
+
+      if (hasLegacyZIndex) {
+        normalizeZIndices();
+        saveNotesToStorage();
+      } else {
+        let maxZ = 10;
+        notesData.forEach(n => {
+          const z = parseInt(n.zIndex, 10);
+          if (!isNaN(z) && z > maxZ) {
+            maxZ = z;
+          }
+        });
+        highestZIndex = maxZ;
+      }
 
       renderCurrentPageNotes();
       updateFabBadge();
       updateFabButtonState();
+      toggleFabMinimize(!!currentSettings.fabMinimized, false);
     });
   }
 
@@ -89,6 +129,7 @@
       currentSettings = { ...currentSettings, ...changes.settings.newValue };
       if (fabEl) {
         fabEl.style.display = currentSettings.showFloatingButton ? 'flex' : 'none';
+        toggleFabMinimize(!!currentSettings.fabMinimized, false);
       }
       if (canvasEl) {
         canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
@@ -97,12 +138,14 @@
 
     if (changes.notes) {
       notesData = changes.notes.newValue || [];
+      let maxZ = 10;
       notesData.forEach(n => {
         const z = parseInt(n.zIndex, 10);
-        if (!isNaN(z) && z > highestZIndex) {
-          highestZIndex = z;
+        if (!isNaN(z) && z > maxZ && z < 100000) {
+          maxZ = z;
         }
       });
+      highestZIndex = maxZ;
       renderCurrentPageNotes();
       updateFabBadge();
       updateFabButtonState();
@@ -240,13 +283,23 @@
     updateFabButtonState();
   }
 
-  function toggleFabMinimize(minimized) {
-    currentSettings.fabMinimized = minimized;
-    fabEl.classList.toggle('minimized', minimized);
-    const content = fabEl.querySelector('.fab-content');
-    const miniBtn = fabEl.querySelector('#fab-mini-btn');
-    if (content) content.style.display = minimized ? 'none' : 'flex';
-    if (miniBtn) miniBtn.style.display = minimized ? 'flex' : 'none';
+  function toggleFabMinimize(minimized, save = true) {
+    currentSettings.fabMinimized = !!minimized;
+    if (fabEl) {
+      fabEl.classList.toggle('minimized', !!minimized);
+      const content = fabEl.querySelector('.fab-content');
+      const miniBtn = fabEl.querySelector('#fab-mini-btn');
+      if (content) content.style.display = minimized ? 'none' : 'flex';
+      if (miniBtn) miniBtn.style.display = minimized ? 'flex' : 'none';
+    }
+
+    if (save) {
+      chrome.storage.local.get(['settings'], (res) => {
+        const settings = res.settings || {};
+        settings.fabMinimized = !!minimized;
+        chrome.storage.local.set({ settings });
+      });
+    }
   }
 
   function updateFabBadge() {
@@ -263,7 +316,7 @@
   }
 
   // Handle click on the Floating Quick Toolbar Hide/Show button
-  // Shows/hides the specific Sticky Note popup (not all notes at once)
+  // Hides or shows all currently open popup notes on this page simultaneously
   function handleFabToggleClick() {
     const pageUrl = getCurrentUrl();
     const pageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
@@ -271,44 +324,54 @@
 
     if (canvasEl && canvasEl.style.display === 'none') {
       canvasEl.style.display = 'block';
-      currentSettings.notesVisible = true;
     }
 
-    // 1. If there is a currently active note that is VISIBLE, clicking Hide/Show button hides that specific active note!
-    let activeVisibleNote = null;
-    if (lastActiveNoteId) {
-      activeVisibleNote = pageNotes.find(n => n.id === lastActiveNoteId && !n.hidden);
-    }
+    // Check if any notes on this page are currently visible
+    const hasVisibleNotes = pageNotes.some(n => !n.hidden);
 
-    if (activeVisibleNote) {
-      setNoteHidden(activeVisibleNote.id, true);
-      return;
-    }
+    // If at least one note is currently visible, hide all notes on this page simultaneously!
+    // If all notes are currently hidden, show all notes on this page simultaneously!
+    const shouldHideAll = hasVisibleNotes;
 
-    // 2. Otherwise, if any note on this page is hidden, clicking Show shows that specific hidden popup again!
-    const hiddenPageNotes = pageNotes.filter(n => n.hidden);
-    if (hiddenPageNotes.length > 0) {
-      let targetId = null;
-      // Get the most recently hidden note from the stack that is still hidden
-      for (let i = hiddenNotesStack.length - 1; i >= 0; i--) {
-        if (hiddenPageNotes.some(n => n.id === hiddenNotesStack[i])) {
-          targetId = hiddenNotesStack[i];
-          break;
+    pageNotes.forEach(note => {
+      note.hidden = shouldHideAll;
+      note.updatedAt = Date.now();
+      const el = notesMap.get(note.id);
+      if (el) {
+        el.classList.toggle('is-hidden', shouldHideAll);
+        el.style.display = shouldHideAll ? 'none' : 'flex';
+        if (shouldHideAll) {
+          el.classList.remove('is-active-note');
         }
       }
-      if (!targetId) {
-        targetId = hiddenPageNotes[hiddenPageNotes.length - 1].id;
+    });
+
+    if (shouldHideAll) {
+      lastActiveNoteId = null;
+      hiddenNotesStack = pageNotes.map(n => n.id);
+    } else {
+      hiddenNotesStack = [];
+      // When showing all notes, bring the topmost note to the front as active
+      const topmost = [...pageNotes].sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))[0];
+      if (topmost) {
+        lastActiveNoteId = topmost.id;
+        const topEl = notesMap.get(topmost.id);
+        if (topEl) bringToFront(topEl, topmost.id, false);
       }
-
-      setNoteHidden(targetId, false);
-      return;
     }
 
-    // 3. All notes are currently visible and none was specifically active: hide the topmost note
-    const topmostVisible = [...pageNotes].filter(n => !n.hidden).sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))[0];
-    if (topmostVisible) {
-      setNoteHidden(topmostVisible.id, true);
-    }
+    currentSettings.notesVisible = !shouldHideAll;
+
+    // Save to storage
+    chrome.storage.local.get(['settings'], (res) => {
+      const settings = res.settings || {};
+      settings.notesVisible = currentSettings.notesVisible;
+      chrome.storage.local.set({ settings, notes: notesData }, () => {
+        updateFabBadge();
+      });
+    });
+
+    updateFabButtonState();
   }
 
   // Update Hide/Show button icon & tooltip on the Floating Quick Toolbar
@@ -316,7 +379,6 @@
     if (!fabEl) return;
     const pageUrl = getCurrentUrl();
     const pageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
-    const hiddenNotes = pageNotes.filter(n => n.hidden);
 
     const toggleBtn = fabEl.querySelector('#fab-toggle-btn');
     const toggleIcon = fabEl.querySelector('#fab-toggle-icon');
@@ -328,34 +390,14 @@
       return;
     }
 
-    // Check if there is an active visible note
-    let activeVisibleNote = null;
-    if (lastActiveNoteId) {
-      activeVisibleNote = pageNotes.find(n => n.id === lastActiveNoteId && !n.hidden);
-    }
+    const hasVisibleNotes = pageNotes.some(n => !n.hidden);
 
-    if (activeVisibleNote) {
-      const title = ((activeVisibleNote.text) || 'Sticky Note').trim().slice(0, 20) || 'Sticky Note';
+    if (hasVisibleNotes) {
       toggleIcon.textContent = '👁️';
-      toggleBtn.title = `Hide active note "${title}" (Right-click for all notes)`;
-    } else if (hiddenNotes.length > 0) {
-      let targetId = null;
-      for (let i = hiddenNotesStack.length - 1; i >= 0; i--) {
-        if (hiddenNotes.some(n => n.id === hiddenNotesStack[i])) {
-          targetId = hiddenNotesStack[i];
-          break;
-        }
-      }
-      if (!targetId) targetId = hiddenNotes[hiddenNotes.length - 1].id;
-      const targetNote = hiddenNotes.find(n => n.id === targetId) || hiddenNotes[0];
-      const title = ((targetNote && targetNote.text) || 'Sticky Note').trim().slice(0, 20) || 'Sticky Note';
-      toggleIcon.textContent = '🙈';
-      toggleBtn.title = `Show hidden note "${title}" (Right-click for all notes)`;
+      toggleBtn.title = `Hide all notes on this page (${pageNotes.length})`;
     } else {
-      const topmost = [...pageNotes].filter(n => !n.hidden).sort((a, b) => (b.zIndex || 0) - (a.zIndex || 0))[0];
-      const title = ((topmost && topmost.text) || 'Sticky Note').trim().slice(0, 20) || 'Sticky Note';
-      toggleIcon.textContent = '👁️';
-      toggleBtn.title = `Hide note "${title}" (Right-click for all notes)`;
+      toggleIcon.textContent = '🙈';
+      toggleBtn.title = `Show all notes on this page (${pageNotes.length})`;
     }
   }
 
@@ -428,17 +470,7 @@
 
   // Toggle Visibility of All Notes on Current Page (from extension shortcut or settings)
   function toggleVisibility() {
-    currentSettings.notesVisible = !currentSettings.notesVisible;
-    if (canvasEl) {
-      canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
-    }
-    // Save setting to storage
-    chrome.storage.local.get(['settings'], (res) => {
-      const settings = res.settings || {};
-      settings.notesVisible = currentSettings.notesVisible;
-      chrome.storage.local.set({ settings });
-    });
-    updateFabButtonState();
+    handleFabToggleClick();
   }
 
   // Set independent hide/show state for a single sticky note
@@ -708,19 +740,12 @@
   function setupNoteEvents(noteEl, note) {
     const id = note.id;
 
-    // Bring note to top immediately on ANY interaction
-    // Use capture phase so it runs before any child handlers (contenteditable, inputs, checklist)
-    const activateNote = (e) => {
-      // If clicking an action button (hide, delete, color, etc.), do NOT reorder DOM during pointerdown/mousedown so the button click is never cancelled!
-      const isActionButton = !!(e && e.target && e.target.closest && e.target.closest('button, .icon-btn, .color-dot, .checklist-item-delete, .resize-handle'));
-      bringToFront(noteEl, id, !isActionButton);
+    // Bring note to top immediately on interaction (single capture listener to prevent handler spam)
+    const activateNote = () => {
+      bringToFront(noteEl, id);
     };
 
     noteEl.addEventListener('pointerdown', activateNote, true);
-    noteEl.addEventListener('mousedown', activateNote, true);
-    noteEl.addEventListener('focusin', activateNote, true);
-    noteEl.addEventListener('touchstart', activateNote, { capture: true, passive: true });
-    noteEl.addEventListener('click', activateNote, true);
 
     // Header actions
     const header = noteEl.querySelector('.note-header');
@@ -826,15 +851,7 @@
       }
     });
 
-    // Close palette on click outside using composedPath across Shadow DOM
-    const handleOutsideClick = (e) => {
-      if (!palettePopover.classList.contains('open')) return;
-      const path = e.composedPath();
-      if (!path.includes(palettePopover) && !path.includes(paletteBtn)) {
-        palettePopover.classList.remove('open');
-      }
-    };
-    document.addEventListener('pointerdown', handleOutsideClick);
+    // Note: click-outside palette dismissal is handled cleanly by the delegated listener in initContainer
 
     // Checklist mode switch
     checklistBtn.addEventListener('click', (e) => {
@@ -843,21 +860,32 @@
       if (!current) return;
 
       current.isChecklist = !current.isChecklist;
-      if (current.isChecklist && (!current.checklistItems || current.checklistItems.length === 0)) {
-        // Convert lines of text to checklist items
+      if (current.isChecklist) {
+        // Bi-directional conversion: parse lines of text to checklist items preserving [x] and [ ] tags
         const lines = (current.text || '').split('\n').map(l => l.trim()).filter(Boolean);
-        current.checklistItems = lines.length ? lines.map(line => ({
-          id: 'item_' + Math.random().toString(36).substring(2, 6),
-          text: line,
-          done: false
-        })) : [{
+        current.checklistItems = lines.length ? lines.map(line => {
+          let isDone = false;
+          let text = line;
+          if (/^\[x\]\s*/i.test(line)) {
+            isDone = true;
+            text = line.replace(/^\[x\]\s*/i, '');
+          } else if (/^\[\s*\]\s*/i.test(line)) {
+            isDone = false;
+            text = line.replace(/^\[\s*\]\s*/i, '');
+          }
+          return {
+            id: 'item_' + Math.random().toString(36).substring(2, 6),
+            text: text,
+            done: isDone
+          };
+        }) : [{
           id: 'item_' + Math.random().toString(36).substring(2, 6),
           text: '',
           done: false
         }];
-      } else if (!current.isChecklist) {
-        // Convert checklist items back to plain text
-        current.text = (current.checklistItems || []).map(i => (i.done ? '[x] ' : '[ ] ') + i.text).join('\n');
+      } else {
+        // Bi-directional conversion: format checklist items back to clean text
+        current.text = (current.checklistItems || []).map(i => (i.done ? '[x] ' : '[ ] ') + (i.text || '')).join('\n');
       }
 
       current.updatedAt = Date.now();
@@ -985,11 +1013,81 @@
         }
       });
 
-      // Enter key adds new item
+      // Keyboard interactions for checklist items (Enter, Backspace, ArrowUp, ArrowDown)
       container.addEventListener('keydown', (e) => {
-        if (e.target.classList.contains('checklist-item-text') && e.key === 'Enter') {
+        if (!e.target.classList.contains('checklist-item-text')) return;
+
+        const currentInput = e.target;
+        const currentItemEl = currentInput.closest('.checklist-item');
+        if (!currentItemEl) return;
+        const currentItemId = currentItemEl.dataset.itemId;
+        const current = notesData.find(n => n.id === id);
+        if (!current || !current.checklistItems) return;
+
+        // 1. Enter key: inserts a new item immediately after current item
+        if (e.key === 'Enter') {
           e.preventDefault();
-          addNewChecklistItem(noteEl, id);
+          addNewChecklistItem(noteEl, id, currentItemId);
+          return;
+        }
+
+        // 2. Backspace key on empty input: deletes current item and focuses previous
+        if (e.key === 'Backspace' && currentInput.value === '') {
+          const allItems = Array.from(container.querySelectorAll('.checklist-item'));
+          if (allItems.length > 1) {
+            e.preventDefault();
+            const currIdx = allItems.indexOf(currentItemEl);
+            const targetItemEl = allItems[currIdx - 1] || allItems[currIdx + 1];
+
+            // Remove from data model
+            current.checklistItems = current.checklistItems.filter(i => i.id !== currentItemId);
+            current.updatedAt = Date.now();
+            currentItemEl.remove();
+            saveNotesDebounced(id);
+
+            // Focus target input
+            if (targetItemEl) {
+              const targetInput = targetItemEl.querySelector('.checklist-item-text');
+              if (targetInput) {
+                targetInput.focus();
+                const len = targetInput.value.length;
+                targetInput.setSelectionRange(len, len);
+              }
+            }
+          }
+          return;
+        }
+
+        // 3. ArrowUp: navigate to previous item
+        if (e.key === 'ArrowUp') {
+          const allItems = Array.from(container.querySelectorAll('.checklist-item'));
+          const currIdx = allItems.indexOf(currentItemEl);
+          if (currIdx > 0) {
+            e.preventDefault();
+            const prevInput = allItems[currIdx - 1].querySelector('.checklist-item-text');
+            if (prevInput) {
+              prevInput.focus();
+              const len = prevInput.value.length;
+              prevInput.setSelectionRange(len, len);
+            }
+          }
+          return;
+        }
+
+        // 4. ArrowDown: navigate to next item
+        if (e.key === 'ArrowDown') {
+          const allItems = Array.from(container.querySelectorAll('.checklist-item'));
+          const currIdx = allItems.indexOf(currentItemEl);
+          if (currIdx < allItems.length - 1) {
+            e.preventDefault();
+            const nextInput = allItems[currIdx + 1].querySelector('.checklist-item-text');
+            if (nextInput) {
+              nextInput.focus();
+              const len = nextInput.value.length;
+              nextInput.setSelectionRange(len, len);
+            }
+          }
+          return;
         }
       });
 
@@ -1018,7 +1116,7 @@
     }
   }
 
-  function addNewChecklistItem(noteEl, noteId) {
+  function addNewChecklistItem(noteEl, noteId, afterItemId = null) {
     const current = notesData.find(n => n.id === noteId);
     if (!current) return;
     if (!current.checklistItems) current.checklistItems = [];
@@ -1028,7 +1126,6 @@
       text: '',
       done: false
     };
-    current.checklistItems.push(newItem);
 
     const container = noteEl.querySelector('.checklist-items');
     const itemEl = document.createElement('div');
@@ -1039,10 +1136,28 @@
       <input type="text" class="checklist-item-text" value="" placeholder="To do item..." />
       <button class="checklist-item-delete" title="Remove item">✕</button>
     `;
-    container.appendChild(itemEl);
+
+    if (afterItemId) {
+      const idx = current.checklistItems.findIndex(i => i.id === afterItemId);
+      if (idx !== -1) {
+        current.checklistItems.splice(idx + 1, 0, newItem);
+        const refEl = container.querySelector(`[data-item-id="${afterItemId}"]`);
+        if (refEl && refEl.nextSibling) {
+          container.insertBefore(itemEl, refEl.nextSibling);
+        } else {
+          container.appendChild(itemEl);
+        }
+      } else {
+        current.checklistItems.push(newItem);
+        container.appendChild(itemEl);
+      }
+    } else {
+      current.checklistItems.push(newItem);
+      container.appendChild(itemEl);
+    }
 
     const input = itemEl.querySelector('.checklist-item-text');
-    input.focus();
+    if (input) input.focus();
     saveNotesDebounced(noteId);
   }
 
@@ -1157,36 +1272,35 @@
   }
 
   // Bring Note to Front (highest zIndex & active state)
-  function bringToFront(noteEl, id, reorderDom = true) {
+  function bringToFront(noteEl, id) {
     lastActiveNoteId = id;
 
     // 1. Calculate max z-index across all rendered note elements & stored notes
-    let maxZ = 2147483640;
+    let maxZ = 10;
     notesMap.forEach((el) => {
       el.classList.remove('is-active-note');
       const z = parseInt(el.style.zIndex, 10);
-      if (!isNaN(z) && z > maxZ) {
+      if (!isNaN(z) && z > maxZ && z < 100000) {
         maxZ = z;
       }
     });
     notesData.forEach((n) => {
       const z = parseInt(n.zIndex, 10);
-      if (!isNaN(z) && z > maxZ) {
+      if (!isNaN(z) && z > maxZ && z < 100000) {
         maxZ = z;
       }
     });
 
-    highestZIndex = Math.max(highestZIndex, maxZ) + 2;
+    highestZIndex = maxZ + 2;
+    if (highestZIndex > 10000) {
+      normalizeZIndices();
+      highestZIndex = Math.max(highestZIndex, 10) + 2;
+    }
+
     noteEl.style.zIndex = highestZIndex;
     noteEl.classList.add('is-active-note');
 
-    // 2. Only reorder in DOM if explicitly safe (not during button clicks) AND not already last child!
-    // Never reorder during button clicks because re-attaching DOM nodes cancels click events in Chromium!
-    if (reorderDom && canvasEl && noteEl.parentElement === canvasEl && canvasEl.lastElementChild !== noteEl) {
-      canvasEl.appendChild(noteEl);
-    }
-
-    // 3. Update the data model
+    // 2. Update the data model without re-parenting DOM nodes (which would cancel caret focus and text selection)
     const current = notesData.find(n => n.id === id);
     if (current) {
       current.zIndex = highestZIndex;
@@ -1282,6 +1396,24 @@
     });
   }
 
+  // Flush all pending debounced saves immediately on page unload or visibility change
+  function flushAllPendingSaves() {
+    if (saveTimeouts.size > 0) {
+      saveTimeouts.forEach((timer) => clearTimeout(timer));
+      saveTimeouts.clear();
+      try {
+        chrome.storage.local.set({ notes: notesData });
+      } catch (_) {}
+    }
+  }
+
+  window.addEventListener('pagehide', flushAllPendingSaves);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      flushAllPendingSaves();
+    }
+  });
+
   // Format relative time
   function formatTimeAgo(ts) {
     if (!ts) return 'Just now';
@@ -1320,6 +1452,12 @@
       const { noteId } = request;
       const noteEl = notesMap.get(noteId);
       if (noteEl) {
+        // Ensure canvas container is visible if previously toggled hidden
+        if (canvasEl && canvasEl.style.display === 'none') {
+          canvasEl.style.display = 'block';
+          currentSettings.notesVisible = true;
+        }
+
         // Unhide if hidden
         setNoteHidden(noteId, false);
 
