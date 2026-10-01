@@ -523,20 +523,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyTheme(newTheme);
   });
 
-  // Settings modal toggle
-  settingsToggleBtn.addEventListener('click', () => {
+  // Settings modal functions with accessibility and focus trapping
+  function openSettingsModal() {
     settingsModal.style.display = 'flex';
-  });
+    modalCloseBtn.focus();
+  }
 
-  modalCloseBtn.addEventListener('click', () => {
+  function closeSettingsModal() {
     settingsModal.style.display = 'none';
-  });
+    settingsToggleBtn.focus();
+  }
+
+  settingsToggleBtn.addEventListener('click', openSettingsModal);
+  modalCloseBtn.addEventListener('click', closeSettingsModal);
 
   settingsModal.addEventListener('click', (e) => {
     if (e.target === settingsModal) {
-      settingsModal.style.display = 'none';
+      closeSettingsModal();
     }
   });
+
+  // Modal keyboard trap & Escape key listener
+  document.addEventListener('keydown', (e) => {
+    if (settingsModal.style.display === 'flex') {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSettingsModal();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        const focusable = settingsModal.querySelectorAll('button, input, select, [tabindex]:not([tabindex="-1"])');
+        if (focusable.length === 0) return;
+        const firstEl = focusable[0];
+        const lastEl = focusable[focusable.length - 1];
+
+        if (e.shiftKey) {
+          if (document.activeElement === firstEl) {
+            e.preventDefault();
+            lastEl.focus();
+          }
+        } else {
+          if (document.activeElement === lastEl) {
+            e.preventDefault();
+            firstEl.focus();
+          }
+        }
+      }
+    } else if (e.key === 'Escape') {
+      // Close open card color palettes on Escape
+      const openPalettes = notesGrid.querySelectorAll('.card-palette-popover.open');
+      if (openPalettes.length > 0) {
+        e.preventDefault();
+        openPalettes.forEach(p => p.classList.remove('open'));
+      }
+    }
+  });
+
+  // Keyboard accessibility for file import label button
+  const importLabel = document.querySelector('label[for="import-json-input"]');
+  if (importLabel) {
+    importLabel.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        importJsonInput.click();
+      }
+    });
+  }
 
   // Settings changes
   settingFloatingBtn.addEventListener('change', (e) => {

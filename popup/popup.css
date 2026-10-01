@@ -5,8 +5,8 @@
   --bg-secondary: #f8fafc;
   --bg-tertiary: #f1f5f9;
   --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-secondary: #334155;
+  --text-muted: #64748b; /* WCAG AA 4.6:1 contrast against white */
   --border-color: #e2e8f0;
   --accent-amber: #f59e0b;
   --accent-amber-hover: #d97706;
@@ -22,7 +22,7 @@
   --bg-tertiary: #334155;
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
+  --text-muted: #94a3b8; /* WCAG AA 6.2:1 contrast against dark slate */
   --border-color: #334155;
   --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   --card-hover-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
@@ -32,6 +32,15 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+label[tabindex="0"]:focus-visible,
+.chip:focus-visible {
+  outline: 2px solid var(--accent-amber);
+  outline-offset: 2px;
 }
 
 body {
@@ -300,8 +309,8 @@ body {
 }
 
 .color-filter-dot {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   cursor: pointer;
   border: 1.5px solid transparent;
@@ -311,6 +320,9 @@ body {
   font-size: 9px;
   color: var(--text-secondary);
   transition: transform 0.15s, border-color 0.15s;
+  background: transparent;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .color-filter-dot:hover {
@@ -320,6 +332,7 @@ body {
 .color-filter-dot.active {
   border-color: var(--text-primary);
   transform: scale(1.15);
+  box-shadow: 0 0 0 1px var(--text-primary);
 }
 
 .color-filter-dot[data-color="all"] {
@@ -502,22 +515,22 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
-  opacity: 0.65;
+  font-size: 11px;
+  opacity: 0.8;
   margin-top: 2px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
   padding-top: 6px;
 }
 
 .card-jump-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   background: rgba(0, 0, 0, 0.08);
-  border: none;
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 10px;
+  padding: 2px 7px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   color: inherit;
@@ -525,7 +538,7 @@ body {
 }
 
 .card-jump-btn:hover {
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.16);
 }
 
 /* Empty State */
@@ -761,4 +774,13 @@ body {
 @keyframes toast-fade {
   from { opacity: 0; transform: translate(-50%, 8px); }
   to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

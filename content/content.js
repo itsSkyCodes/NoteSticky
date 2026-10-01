@@ -82,6 +82,50 @@
       });
     });
 
+    // Dismiss open popovers and undo toasts on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return;
+      if (!shadowRoot) return;
+
+      let handled = false;
+
+      // 1. Close open palette popovers
+      const openPalettes = shadowRoot.querySelectorAll('.palette-popover.open');
+      if (openPalettes.length > 0) {
+        openPalettes.forEach(popover => {
+          popover.classList.remove('open');
+          const noteEl = popover.closest('.sticky-note');
+          const paletteBtn = noteEl ? noteEl.querySelector('#btn-palette') : null;
+          if (paletteBtn) paletteBtn.focus();
+        });
+        handled = true;
+      }
+
+      // 2. Close FAB context popover
+      if (fabEl) {
+        const fabPopover = fabEl.querySelector('#fab-notes-popover.open');
+        if (fabPopover) {
+          fabPopover.classList.remove('open');
+          const toggleBtn = fabEl.querySelector('#fab-toggle-btn');
+          if (toggleBtn) toggleBtn.focus();
+          handled = true;
+        }
+      }
+
+      // 3. Dismiss undo toast
+      const toast = shadowRoot.querySelector('.notesticky-toast');
+      if (toast) {
+        toast.remove();
+        if (undoToastTimeout) clearTimeout(undoToastTimeout);
+        lastDeletedNote = null;
+        handled = true;
+      }
+
+      if (handled) {
+        e.stopPropagation();
+      }
+    });
+
     // Load initial data
     loadFromStorage();
   }
@@ -199,28 +243,30 @@
     fabEl = document.createElement('div');
     fabEl.className = 'notesticky-fab-container' + (currentSettings.fabMinimized ? ' minimized' : '');
     fabEl.style.display = currentSettings.showFloatingButton ? 'flex' : 'none';
+    fabEl.setAttribute('role', 'toolbar');
+    fabEl.setAttribute('aria-label', 'NoteSticky toolbar');
 
     fabEl.innerHTML = `
       <div class="fab-content" style="display: ${currentSettings.fabMinimized ? 'none' : 'flex'}; align-items: center; gap: 8px;">
-        <button class="fab-btn fab-btn-primary" id="fab-add-btn" title="Add Sticky Note (Alt+Shift+N)">
-          <span>➕</span>
+        <button type="button" class="fab-btn fab-btn-primary" id="fab-add-btn" title="Add Sticky Note (Alt+Shift+N)" aria-label="Create new sticky note (Alt+Shift+N)">
+          <span aria-hidden="true">➕</span>
           <span>New Note</span>
         </button>
-        <div class="fab-separator"></div>
-        <button class="fab-btn" id="fab-toggle-btn" title="Hide/Show Note">
-          <span id="fab-toggle-icon">👁️</span>
+        <div class="fab-separator" aria-hidden="true"></div>
+        <button type="button" class="fab-btn" id="fab-toggle-btn" title="Hide/Show Note" aria-label="Toggle notes visibility on page">
+          <span id="fab-toggle-icon" aria-hidden="true">👁️</span>
         </button>
-        <span class="fab-badge" id="fab-counter" title="Notes on this page">0</span>
-        <button class="fab-btn" id="fab-collapse-btn" title="Minimize toolbar">
-          <span>↘</span>
+        <span class="fab-badge" id="fab-counter" role="status" aria-live="polite" aria-label="Notes on this page" title="Notes on this page (click to view/toggle notes)" tabindex="0">0</span>
+        <button type="button" class="fab-btn" id="fab-collapse-btn" title="Minimize toolbar" aria-label="Minimize floating toolbar">
+          <span aria-hidden="true">↘</span>
         </button>
       </div>
-      <button class="fab-btn fab-mini-toggle" id="fab-mini-btn" style="display: ${currentSettings.fabMinimized ? 'flex' : 'none'}; padding: 6px;" title="Open Sticky Notes Toolbar">
-        <span>📌</span>
+      <button type="button" class="fab-btn fab-mini-toggle" id="fab-mini-btn" style="display: ${currentSettings.fabMinimized ? 'flex' : 'none'}; padding: 6px;" title="Open Sticky Notes Toolbar" aria-label="Expand NoteSticky toolbar">
+        <span aria-hidden="true">📌</span>
       </button>
 
       <!-- Optional context popover to choose specific note to toggle -->
-      <div class="fab-notes-popover" id="fab-notes-popover"></div>
+      <div class="fab-notes-popover" id="fab-notes-popover" role="dialog" aria-modal="false" aria-label="Page notes list"></div>
     `;
 
     shadowRoot.appendChild(fabEl);
@@ -256,6 +302,13 @@
       counterBadge.addEventListener('click', (e) => {
         e.stopPropagation();
         toggleFabNotesPopover();
+      });
+      counterBadge.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          toggleFabNotesPopover();
+        }
       });
     }
 
@@ -430,13 +483,13 @@
       const dotColor = colors[n.color] || '#FEF08A';
       const title = (n.text || 'Untitled Note').trim() || 'Untitled Note';
       return `
-        <div class="fab-popover-item ${n.hidden ? 'is-note-hidden' : ''}" data-id="${n.id}">
+        <div class="fab-popover-item ${n.hidden ? 'is-note-hidden' : ''}" data-id="${n.id}" role="button" tabindex="0" aria-label="${escapeHtml(title)} - ${n.hidden ? 'Hidden, click to show' : 'Visible, click to hide'}">
           <div class="fab-popover-title-wrapper">
-            <span class="fab-popover-dot" style="background: ${dotColor};"></span>
+            <span class="fab-popover-dot" style="background: ${dotColor};" aria-hidden="true"></span>
             <span class="fab-popover-title">${escapeHtml(title)}</span>
           </div>
-          <button class="fab-popover-btn" title="${n.hidden ? 'Show this note' : 'Hide this note'}">
-            ${n.hidden ? '🙈' : '👁️'}
+          <button type="button" class="fab-popover-btn" title="${n.hidden ? 'Show this note' : 'Hide this note'}" aria-label="${n.hidden ? 'Show this note' : 'Hide this note'}">
+            <span aria-hidden="true">${n.hidden ? '🙈' : '👁️'}</span>
           </button>
         </div>
       `;
@@ -444,14 +497,14 @@
 
     popover.innerHTML = `
       <div class="fab-popover-header">Page Notes (${pageNotes.length})</div>
-      <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;">
+      <div style="max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 2px;" role="list">
         ${itemsHtml}
       </div>
     `;
 
     popover.querySelectorAll('.fab-popover-item').forEach(item => {
       const noteId = item.dataset.id;
-      item.addEventListener('click', (e) => {
+      const activateItem = (e) => {
         e.stopPropagation();
         const note = notesData.find(n => n.id === noteId);
         if (note) {
@@ -461,6 +514,13 @@
             if (el) bringToFront(el, noteId);
           }
           popover.classList.remove('open');
+        }
+      };
+      item.addEventListener('click', activateItem);
+      item.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateItem(e);
         }
       });
     });
@@ -596,34 +656,37 @@
     ];
 
     const paletteHtml = colors.map(c => `
-      <div class="color-dot ${c.id === note.color ? 'active' : ''}" data-color="${c.id}" style="background: ${c.hex};" title="${c.id}"></div>
+      <button type="button" class="color-dot ${c.id === note.color ? 'active' : ''}" data-color="${c.id}" style="background: ${c.hex};" title="${c.id}" aria-label="Set color to ${c.id}" aria-pressed="${c.id === note.color}"></button>
     `).join('');
+
+    noteEl.setAttribute('role', 'region');
+    noteEl.setAttribute('aria-label', `Sticky Note: ${(note.text || 'Untitled').trim().slice(0, 30) || 'Untitled'}`);
 
     noteEl.innerHTML = `
       <div class="note-header">
         <div class="note-header-left">
-          <span class="pin-indicator ${note.pinned ? 'pinned' : ''}" title="${note.pinned ? 'Pinned to screen (click to scroll with page)' : 'Scrolls with page (click to pin to screen)'}">
+          <button type="button" class="pin-indicator ${note.pinned ? 'pinned' : ''}" title="${note.pinned ? 'Pinned to screen (click to scroll with page)' : 'Scrolls with page (click to pin to screen)'}" aria-label="${note.pinned ? 'Unpin note (currently pinned to screen)' : 'Pin note to screen'}" aria-pressed="${!!note.pinned}">
             ${note.pinned ? '📌' : '📍'}
-          </span>
+          </button>
           <span class="note-title-preview" style="display: ${note.minimized ? 'inline' : 'none'}; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             ${escapeHtml(note.text || 'Note')}
           </span>
         </div>
-        <div class="note-header-actions">
-          <button class="icon-btn" id="btn-palette" title="Change Color">🎨</button>
-          <button class="icon-btn" id="btn-checklist" title="${note.isChecklist ? 'Switch to Note' : 'Switch to Checklist'}">
+        <div class="note-header-actions" role="toolbar" aria-label="Note actions">
+          <button type="button" class="icon-btn" id="btn-palette" title="Change Color (Right-click to quick cycle)" aria-label="Change note color">🎨</button>
+          <button type="button" class="icon-btn" id="btn-checklist" title="${note.isChecklist ? 'Switch to Note' : 'Switch to Checklist'}" aria-label="${note.isChecklist ? 'Switch to plain text note' : 'Switch to checklist'}">
             ${note.isChecklist ? '📝' : '☑️'}
           </button>
-          <button class="icon-btn" id="btn-toggle-vis" title="Hide this note">👁️</button>
-          <button class="icon-btn" id="btn-minimize" title="${note.minimized ? 'Expand' : 'Minimize'}">
+          <button type="button" class="icon-btn" id="btn-toggle-vis" title="Hide this note" aria-label="Hide note from page">👁️</button>
+          <button type="button" class="icon-btn" id="btn-minimize" title="${note.minimized ? 'Expand' : 'Minimize'}" aria-label="${note.minimized ? 'Expand note' : 'Minimize note'}">
             ${note.minimized ? '🗖' : '🗕'}
           </button>
-          <button class="icon-btn danger" id="btn-delete" title="Delete Note">✕</button>
+          <button type="button" class="icon-btn danger" id="btn-delete" title="Delete Note" aria-label="Delete note">✕</button>
         </div>
       </div>
 
       <!-- Color Palette Popover -->
-      <div class="palette-popover">
+      <div class="palette-popover" role="toolbar" aria-label="Color options">
         ${paletteHtml}
       </div>
 
@@ -635,11 +698,11 @@
       <!-- Footer -->
       <div class="note-footer">
         <span class="footer-time">${formatTimeAgo(note.updatedAt || note.createdAt)}</span>
-        <span class="footer-status" style="opacity: 0.8;"></span>
+        <span class="footer-status" style="opacity: 0.8;" aria-live="polite"></span>
       </div>
 
       <!-- Resize Grip -->
-      <div class="resize-handle" title="Resize">
+      <div class="resize-handle" title="Resize" aria-hidden="true">
         <svg width="10" height="10" viewBox="0 0 10 10">
           <path d="M9 1 L1 9 M9 5 L5 9 M9 9 L9 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
         </svg>
@@ -659,17 +722,22 @@
     allThemes.forEach(t => noteEl.classList.remove(`theme-${t}`));
     noteEl.classList.add(`theme-${note.color || 'yellow'}`);
 
+    noteEl.setAttribute('aria-label', `Sticky Note: ${(note.text || 'Untitled').trim().slice(0, 30) || 'Untitled'}`);
+
     // Update active dot in palette
     const palettePopover = noteEl.querySelector('.palette-popover');
     if (palettePopover) {
       palettePopover.querySelectorAll('.color-dot').forEach(dot => {
-        dot.classList.toggle('active', dot.dataset.color === (note.color || 'yellow'));
+        const isActive = dot.dataset.color === (note.color || 'yellow');
+        dot.classList.toggle('active', isActive);
+        dot.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
     }
 
     const visBtn = noteEl.querySelector('#btn-toggle-vis');
     if (visBtn) {
       visBtn.title = "Hide this note";
+      visBtn.setAttribute('aria-label', 'Hide note from page');
       visBtn.textContent = '👁️';
     }
 
@@ -705,6 +773,23 @@
       if (pinEl) {
         pinEl.className = `pin-indicator ${note.pinned ? 'pinned' : ''}`;
         pinEl.textContent = note.pinned ? '📌' : '📍';
+        pinEl.title = note.pinned ? 'Pinned to screen (click to scroll with page)' : 'Scrolls with page (click to pin to screen)';
+        pinEl.setAttribute('aria-label', note.pinned ? 'Unpin note (currently pinned to screen)' : 'Pin note to screen');
+        pinEl.setAttribute('aria-pressed', note.pinned ? 'true' : 'false');
+      }
+
+      const minimizeBtn = noteEl.querySelector('#btn-minimize');
+      if (minimizeBtn) {
+        minimizeBtn.textContent = note.minimized ? '🗖' : '🗕';
+        minimizeBtn.title = note.minimized ? 'Expand' : 'Minimize';
+        minimizeBtn.setAttribute('aria-label', note.minimized ? 'Expand note' : 'Minimize note');
+      }
+
+      const checklistBtn = noteEl.querySelector('#btn-checklist');
+      if (checklistBtn) {
+        checklistBtn.textContent = note.isChecklist ? '📝' : '☑️';
+        checklistBtn.title = note.isChecklist ? 'Switch to Note' : 'Switch to Checklist';
+        checklistBtn.setAttribute('aria-label', note.isChecklist ? 'Switch to plain text note' : 'Switch to checklist');
       }
     }
   }
@@ -715,23 +800,23 @@
       const items = note.checklistItems || [];
       const itemsHtml = items.map((item, idx) => `
         <div class="checklist-item ${item.done ? 'done' : ''}" data-item-id="${item.id}">
-          <input type="checkbox" ${item.done ? 'checked' : ''} />
-          <input type="text" class="checklist-item-text" value="${escapeHtml(item.text)}" placeholder="To do item..." />
-          <button class="checklist-item-delete" title="Remove item">✕</button>
+          <input type="checkbox" ${item.done ? 'checked' : ''} aria-label="Mark item completed" />
+          <input type="text" class="checklist-item-text" value="${escapeHtml(item.text)}" placeholder="To do item..." aria-label="Checklist item text" />
+          <button type="button" class="checklist-item-delete" title="Remove item" aria-label="Remove item">✕</button>
         </div>
       `).join('');
 
       return `
-        <div class="note-body checklist-container" style="overflow-y: auto;">
+        <div class="note-body checklist-container" style="overflow-y: auto;" role="region" aria-label="Checklist">
           <div class="checklist-items">${itemsHtml}</div>
-          <button class="checklist-add-btn">
-            <span>+</span> Add item
+          <button type="button" class="checklist-add-btn" aria-label="Add new checklist item">
+            <span aria-hidden="true">+</span> Add item
           </button>
         </div>
       `;
     } else {
       return `
-        <div class="note-body" contenteditable="true" data-placeholder="Type your sticky note here...">${escapeHtml(note.text || '')}</div>
+        <div class="note-body" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Sticky note content" data-placeholder="Type your sticky note here...">${escapeHtml(note.text || '')}</div>
       `;
     }
   }
@@ -790,6 +875,8 @@
       pinBtn.classList.toggle('pinned', current.pinned);
       pinBtn.textContent = current.pinned ? '📌' : '📍';
       pinBtn.title = current.pinned ? 'Pinned to screen (click to scroll with page)' : 'Scrolls with page (click to pin to screen)';
+      pinBtn.setAttribute('aria-label', current.pinned ? 'Unpin note (currently pinned to screen)' : 'Pin note to screen');
+      pinBtn.setAttribute('aria-pressed', current.pinned ? 'true' : 'false');
 
       saveNotesDebounced(id);
     });
@@ -828,7 +915,9 @@
       noteEl.classList.add(`theme-${newColor}`);
 
       palettePopover.querySelectorAll('.color-dot').forEach(dot => {
-        dot.classList.toggle('active', dot.dataset.color === newColor);
+        const isActive = dot.dataset.color === newColor;
+        dot.classList.toggle('active', isActive);
+        dot.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
 
       palettePopover.classList.remove('open');
@@ -891,6 +980,7 @@
       current.updatedAt = Date.now();
       checklistBtn.textContent = current.isChecklist ? '📝' : '☑️';
       checklistBtn.title = current.isChecklist ? 'Switch to Note' : 'Switch to Checklist';
+      checklistBtn.setAttribute('aria-label', current.isChecklist ? 'Switch to plain text note' : 'Switch to checklist');
 
       const bodyWrapper = noteEl.querySelector('.note-body-wrapper');
       bodyWrapper.innerHTML = renderNoteBodyContent(current);
@@ -922,6 +1012,7 @@
       noteEl.classList.toggle('minimized', current.minimized);
       minimizeBtn.textContent = current.minimized ? '🗖' : '🗕';
       minimizeBtn.title = current.minimized ? 'Expand' : 'Minimize';
+      minimizeBtn.setAttribute('aria-label', current.minimized ? 'Expand note' : 'Minimize note');
 
       const preview = noteEl.querySelector('.note-title-preview');
       if (preview) {
@@ -956,6 +1047,7 @@
 
         current.text = body.innerText;
         current.updatedAt = Date.now();
+        noteEl.setAttribute('aria-label', `Sticky Note: ${(current.text || 'Untitled').trim().slice(0, 30) || 'Untitled'}`);
         showStatus(noteEl, 'Saving...');
         saveNotesDebounced(id);
       });
@@ -1132,9 +1224,9 @@
     itemEl.className = 'checklist-item';
     itemEl.dataset.itemId = newItem.id;
     itemEl.innerHTML = `
-      <input type="checkbox" />
-      <input type="text" class="checklist-item-text" value="" placeholder="To do item..." />
-      <button class="checklist-item-delete" title="Remove item">✕</button>
+      <input type="checkbox" aria-label="Mark item completed" />
+      <input type="text" class="checklist-item-text" value="" placeholder="To do item..." aria-label="Checklist item text" />
+      <button type="button" class="checklist-item-delete" title="Remove item" aria-label="Remove item">✕</button>
     `;
 
     if (afterItemId) {
@@ -1315,7 +1407,7 @@
     const idx = notesData.findIndex(n => n.id === id);
     if (idx === -1) return;
 
-    lastDeletedNote = { ...notesData[idx] };
+    lastDeletedNote = JSON.parse(JSON.stringify(notesData[idx]));
     notesData.splice(idx, 1);
 
     const el = notesMap.get(id);
@@ -1338,9 +1430,11 @@
 
     const toast = document.createElement('div');
     toast.className = 'notesticky-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
     toast.innerHTML = `
       <span>Note deleted</span>
-      <button id="toast-undo-btn">Undo</button>
+      <button type="button" id="toast-undo-btn" aria-label="Undo note deletion">Undo</button>
     `;
     shadowRoot.appendChild(toast);
 

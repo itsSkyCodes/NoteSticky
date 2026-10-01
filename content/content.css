@@ -15,6 +15,52 @@
   padding: 0;
 }
 
+/* Accessibility Focus States */
+:focus {
+  outline: none;
+}
+
+button:focus-visible,
+input:focus-visible,
+.fab-btn:focus-visible,
+.icon-btn:focus-visible,
+.fab-badge:focus-visible,
+.checklist-add-btn:focus-visible,
+.pin-indicator:focus-visible,
+[tabindex="0"]:focus-visible {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 2px !important;
+}
+
+.note-body:focus-visible {
+  outline: 2px solid rgba(245, 158, 11, 0.7) !important;
+  outline-offset: -2px !important;
+  border-radius: 4px;
+}
+
+.checklist-item-text:focus-visible {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 1px !important;
+  border-radius: 3px;
+}
+
+.checklist-item input[type="checkbox"]:focus-visible {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 2px !important;
+}
+
+.color-dot:focus-visible {
+  outline: 2px solid #0f172a !important;
+  outline-offset: 2px !important;
+  transform: scale(1.2);
+}
+
+.fab-popover-item:focus-visible {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: -1px !important;
+  background: #f1f5f9;
+}
+
 /* Container */
 .notesticky-canvas {
   position: absolute;
@@ -264,6 +310,12 @@
 }
 
 .pin-indicator {
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -338,6 +390,11 @@
 }
 
 .color-dot {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -458,11 +515,13 @@
   transition: opacity 0.15s;
 }
 
-.checklist-item:hover .checklist-item-delete {
-  opacity: 0.6;
+.checklist-item:hover .checklist-item-delete,
+.checklist-item-delete:focus-visible {
+  opacity: 0.8 !important;
 }
 
-.checklist-item-delete:hover {
+.checklist-item-delete:hover,
+.checklist-item-delete:focus-visible {
   opacity: 1 !important;
   color: #ef4444;
 }
@@ -497,9 +556,15 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 10px;
-  opacity: 0.55;
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.75;
   user-select: none;
+}
+
+.theme-slate .note-footer {
+  color: #cbd5e1;
+  opacity: 0.85;
 }
 
 .resize-handle {
@@ -666,4 +731,14 @@
 
 .fab-popover-btn:hover {
   background: #e2e8f0;
+}
+
+/* Accessibility - Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
