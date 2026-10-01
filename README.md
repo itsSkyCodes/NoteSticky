@@ -61,7 +61,7 @@ Loading the extension takes less than 30 seconds:
 4. Click the **"Load unpacked"** button in the top left.
 5. Select this project folder:
    ```text
-   sticky notes
+   NoteSticky
    ```
 6. That's it! 🎉 You will see **NoteSticky - Webpage & Dashboard Sticky Notes** appear in your extension list.
 7. Click the **Puzzle icon** (Extensions menu) in the top-right of Chrome and pin **NoteSticky** for quick access.
@@ -80,7 +80,7 @@ Loading the extension takes less than 30 seconds:
 ## 📁 Project Architecture
 
 ```text
-sticky notes/
+NoteSticky/
 ├── manifest.json            # Chrome Extension Manifest V3 configuration
 ├── demo.html                # Interactive test and demonstration webpage
 ├── README.md                # Documentation and guide
