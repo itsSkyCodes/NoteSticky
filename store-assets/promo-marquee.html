@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Marquee Promo Tile (1400x560)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1400px;
+      height: 560px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 75% 40%, #1e1b4b 0%, #0f172a 60%, #090d16 100%);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 100px;
+      position: relative;
+    }
+
+    /* Subtle grid */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      z-index: 1;
+    }
+
+    .glow-blob {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, transparent 70%);
+      top: -100px;
+      right: 150px;
+      pointer-events: none;
+    }
+
+    /* Left Branding column */
+    .brand-col {
+      max-width: 580px;
+      z-index: 10;
+    }
+
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      color: #fbbf24;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+
+    .main-h1 {
+      font-size: 54px;
+      font-weight: 900;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 18px;
+      background: linear-gradient(135deg, #ffffff 30%, #fef08a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sub-p {
+      font-size: 18px;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+
+    .perks-row {
+      display: flex;
+      gap: 16px;
+    }
+    .perk-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #f1f5f9;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 14px;
+      border-radius: 10px;
+    }
+
+    /* Right Showcase floating notes */
+    .showcase-col {
+      position: relative;
+      width: 480px;
+      height: 420px;
+      z-index: 10;
+    }
+
+    .f-note {
+      position: absolute;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      padding: 18px 20px;
+    }
+
+    .fn-yellow {
+      top: 20px;
+      left: 20px;
+      width: 320px;
+      background: #fef3c7;
+      color: #78350f;
+      transform: rotate(-3deg);
+      z-index: 15;
+    }
+    .fn-blue {
+      bottom: 20px;
+      right: 20px;
+      width: 320px;
+      background: #e0f2fe;
+      color: #0369a1;
+      transform: rotate(2deg);
+      z-index: 20;
+    }
+
+    .fn-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 800;
+      font-size: 15px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+    .fn-body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    .chk-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .chk-line input { accent-color: #d97706; }
+    .chk-line.done { text-decoration: line-through; opacity: 0.75; }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+  <div class="glow-blob"></div>
+
+  <!-- Left: Branding -->
+  <div class="brand-col">
+    <div class="badge-pill">
+      <span>✨ NoteSticky for Chrome</span>
+      <span>•</span>
+      <span>Manifest V3</span>
+    </div>
+    <h1 class="main-h1">Sticky Notes &amp; Checklists on Any Webpage.</h1>
+    <p class="sub-p">Pin thoughts, track to-dos, and reference research notes without leaving your browsing workflow. 100% private &amp; offline.</p>
+    <div class="perks-row">
+      <div class="perk-item">📌 Pinned to URL</div>
+      <div class="perk-item">🔍 Global Dashboard</div>
+      <div class="perk-item">🔒 Zero Tracking</div>
+    </div>
+  </div>
+
+  <!-- Right: Floating Visual Notes -->
+  <div class="showcase-col">
+    <div class="f-note fn-yellow">
+      <div class="fn-header">
+        <span>🚀 Project Launch</span>
+        <span>🎨 _ ✕</span>
+      </div>
+      <div class="fn-body">
+        <div class="chk-line done">
+          <input type="checkbox" checked disabled>
+          <span>Shadow DOM encapsulation</span>
+        </div>
+        <div class="chk-line done">
+          <input type="checkbox" checked disabled>
+          <span>WCAG AA accessible contrast</span>
+        </div>
+        <div class="chk-line">
+          <input type="checkbox" disabled>
+          <span>Chrome Web Store release</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="f-note fn-blue">
+      <div class="fn-header">
+        <span>💡 Central Dashboard</span>
+        <span>📌 _ ✕</span>
+      </div>
+      <div class="fn-body">
+        Search, filter by color, and 1-click jump to any note across any domain!
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot 4 - Backup, Restore & Privacy</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Ambient Glows */
+    .glow-amber {
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+      top: 100px;
+      left: 150px;
+      pointer-events: none;
+    }
+    .glow-indigo {
+      position: absolute;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, transparent 70%);
+      bottom: 80px;
+      right: 150px;
+      pointer-events: none;
+    }
+
+    /* Top Pill */
+    .top-badge {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 8px 20px;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fbbf24;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+      z-index: 10;
+    }
+
+    /* Main Container */
+    .content-row {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+      z-index: 10;
+      max-width: 1080px;
+      width: 100%;
+    }
+
+    /* Left Card: Backup Modal UI */
+    .modal-card {
+      flex: 1;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-pill {
+      font-size: 12px;
+      font-weight: 700;
+      background: #ecfdf5;
+      color: #059669;
+      padding: 4px 10px;
+      border-radius: 9999px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 8px;
+    }
+    .section-sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .btn-export {
+      width: 100%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      cursor: pointer;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+
+    .dropzone {
+      border: 2px dashed #cbd5e1;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 24px;
+      text-align: center;
+      color: #64748b;
+    }
+    .drop-icon { font-size: 28px; margin-bottom: 8px; }
+    .drop-text { font-size: 14px; font-weight: 600; color: #334155; margin-bottom: 4px; }
+    .drop-sub { font-size: 12px; }
+
+    /* Right Card: Privacy Pillars */
+    .privacy-features {
+      width: 440px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .pillar-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .pillar-icon {
+      font-size: 24px;
+      background: rgba(245, 158, 11, 0.15);
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .pillar-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f8fafc;
+      margin-bottom: 4px;
+    }
+    .pillar-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.45;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="glow-amber"></div>
+  <div class="glow-indigo"></div>
+
+  <div class="top-badge">
+    <span>🛡️ COMPLETE DATA PRIVACY & PORTABILITY</span>
+    <span>•</span>
+    <span>Zero Cloud Dependencies</span>
+  </div>
+
+  <div class="content-row">
+    <!-- Left: Modal Showcase -->
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>⚙️</span> Backup & Restore
+        </div>
+        <div class="status-pill">● 4 Notes Ready</div>
+      </div>
+
+      <div class="section-title">Export Local Workspace</div>
+      <div class="section-sub">Download all your sticky notes, URLs, checklists, and colors into a single JSON file.</div>
+      <button class="btn-export">
+        <span>⬇️</span> Download notes-backup.json
+      </button>
+
+      <div class="section-title">Restore from JSON</div>
+      <div class="section-sub">Safely import a previously exported backup file to restore your notes.</div>
+      <div class="dropzone">
+        <div class="drop-icon">📁</div>
+        <div class="drop-text">Click or drag JSON file here to restore</div>
+        <div class="drop-sub">Existing notes will be safely merged</div>
+      </div>
+    </div>
+
+    <!-- Right: 4 Privacy Pillars -->
+    <div class="privacy-features">
+      <div class="pillar-card">
+        <div class="pillar-icon">🔒</div>
+        <div>
+          <div class="pillar-title">100% Local Storage</div>
+          <div class="pillar-desc">All note contents and metadata live exclusively on your device inside <code>chrome.storage.local</code>.</div>
+        </div>
+      </div>
+
+      <div class="pillar-card">
+        <div class="pillar-icon">🚫</div>
+        <div>
+          <div class="pillar-title">Zero Remote Telemetry</div>
+          <div class="pillar-desc">No tracking scripts, analytics, or remote database pings. Your thoughts remain completely private.</div>
+        </div>
+      </div>
+
+      <div class="pillar-card">
+        <div class="pillar-icon">⚡</div>
+        <div>
+          <div class="pillar-title">Works Completely Offline</div>
+          <div class="pillar-desc">Create, view, and organize your notes anywhere—even without an active internet connection.</div>
+        </div>
+      </div>
+
+      <div class="pillar-card">
+        <div class="pillar-icon">📦</div>
+        <div>
+          <div class="pillar-title">No Account Required</div>
+          <div class="pillar-desc">No logins, passwords, or emails. Install NoteSticky and start pinning notes immediately.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

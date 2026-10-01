@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot 3 - Rich Customization & Minimized Notes</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f1f5f9;
+      position: relative;
+    }
+
+    /* Top banner */
+    .banner-top {
+      height: 60px;
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 18px;
+      color: #0f172a;
+    }
+    .banner-caption {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Canvas background mockup */
+    .canvas-board {
+      width: 100%;
+      height: calc(800px - 60px);
+      padding: 40px;
+      position: relative;
+      background: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 24px 24px;
+    }
+
+    /* Common Note Styles */
+    .note-card {
+      position: absolute;
+      border-radius: 14px;
+      box-shadow: 0 16px 32px -8px rgba(0,0,0,0.12), 0 4px 6px -2px rgba(0,0,0,0.05);
+      border: 1px solid rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+    }
+    .note-head {
+      padding: 12px 16px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .note-title {
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-row {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .note-body {
+      padding: 12px 16px 16px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    /* Note 1: Minimized Chip Showcase */
+    .minimized-chip {
+      position: absolute;
+      top: 50px;
+      left: 60px;
+      width: 380px;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px -6px rgba(245, 158, 11, 0.25);
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 50;
+    }
+    .chip-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #92400e;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .chip-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .chip-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(180, 83, 9, 0.12);
+      color: #92400e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+    }
+    .chip-annotation {
+      position: absolute;
+      top: -30px;
+      left: 10px;
+      background: #f59e0b;
+      color: #ffffff;
+      padding: 2px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Note 2: Emerald Green */
+    .note-green {
+      top: 140px;
+      left: 60px;
+      width: 360px;
+      background: #d1fae5;
+      border-color: #a7f3d0;
+      color: #065f46;
+    }
+    .note-green .note-title { color: #065f46; }
+    .note-green .btn-icon { background: rgba(5, 150, 105, 0.12); color: #065f46; }
+
+    /* Note 3: Rose Pink */
+    .note-rose {
+      top: 50px;
+      left: 460px;
+      width: 360px;
+      background: #ffe4e6;
+      border-color: #fecdd3;
+      color: #9f1239;
+    }
+    .note-rose .note-title { color: #9f1239; }
+    .note-rose .btn-icon { background: rgba(225, 29, 72, 0.12); color: #9f1239; }
+
+    /* Note 4: Dark Slate */
+    .note-dark {
+      top: 260px;
+      right: 60px;
+      width: 340px;
+      background: #1e293b;
+      border-color: #334155;
+      color: #f8fafc;
+    }
+    .note-dark .note-title { color: #f8fafc; }
+    .note-dark .btn-icon { background: rgba(255, 255, 255, 0.1); color: #cbd5e1; }
+    .note-dark code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #38bdf8; }
+
+    /* Palette Bar Card */
+    .palette-feature-card {
+      position: absolute;
+      bottom: 40px;
+      left: 460px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px 24px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+      width: 360px;
+    }
+    .p-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #0f172a;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .p-title span.tag {
+      font-size: 11px;
+      background: #dbeafe;
+      color: #1e40af;
+      padding: 2px 8px;
+      border-radius: 9999px;
+    }
+    .p-swatches {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .swatch {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+    .swatch.s1 { background: #fef08a; }
+    .swatch.s2 { background: #a7f3d0; }
+    .swatch.s3 { background: #bae6fd; }
+    .swatch.s4 { background: #fecdd3; }
+    .swatch.s5 { background: #e9d5ff; }
+    .swatch.s6 { background: #1e293b; color: white; }
+
+    .p-desc {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    
+    .chk-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .chk-item input { accent-color: #059669; }
+    .chk-item.done { text-decoration: line-through; opacity: 0.75; }
+  </style>
+</head>
+<body>
+
+  <div class="banner-top">
+    <div class="brand">
+      <span>📝 NoteSticky</span>
+      <span style="font-weight: 400; color: #64748b; font-size: 16px;">| Rich Customization & Controls</span>
+    </div>
+    <div class="banner-caption">
+      ✓ WCAG AA High-Contrast Palettes & Accessibility
+    </div>
+  </div>
+
+  <div class="canvas-board">
+
+    <!-- 1. Minimized Note Chip -->
+    <div class="minimized-chip">
+      <div class="chip-annotation">Minimized Mode</div>
+      <div class="chip-title">
+        <span>📌</span> Sprint Retrospective Notes (Q4 Review)
+      </div>
+      <div class="chip-actions">
+        <button class="chip-btn" title="Maximize">□</button>
+        <button class="chip-btn" title="Change Color">🎨</button>
+        <button class="chip-btn" title="Delete">✕</button>
+      </div>
+    </div>
+
+    <!-- 2. Emerald Green Note -->
+    <div class="note-card note-green">
+      <div class="note-head">
+        <div class="note-title">
+          <span>🌿</span> Weekly Goals
+        </div>
+        <div class="btn-row">
+          <button class="btn-icon">📌</button>
+          <button class="btn-icon">_</button>
+          <button class="btn-icon">✕</button>
+        </div>
+      </div>
+      <div class="note-body">
+        <div class="chk-item done">
+          <input type="checkbox" checked disabled>
+          <span>Complete unit testing</span>
+        </div>
+        <div class="chk-item done">
+          <input type="checkbox" checked disabled>
+          <span>Cross-browser responsive checks</span>
+        </div>
+        <div class="chk-item">
+          <input type="checkbox" disabled>
+          <span>Share release bundle with community</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Rose Pink Note -->
+    <div class="note-card note-rose">
+      <div class="note-head">
+        <div class="note-title">
+          <span>🌸</span> Design Inspirations
+        </div>
+        <div class="btn-row">
+          <button class="btn-icon">📌</button>
+          <button class="btn-icon">_</button>
+          <button class="btn-icon">✕</button>
+        </div>
+      </div>
+      <div class="note-body">
+        • Glassmorphic toolbars with 12px blur<br>
+        • Tactile shadow states for drag operations<br>
+        • Consistent 8px border-radius across inputs<br>
+        • Micro-transitions on button hovers
+      </div>
+    </div>
+
+    <!-- 4. Dark Slate Note -->
+    <div class="note-card note-dark">
+      <div class="note-head">
+        <div class="note-title">
+          <span>🌙</span> Dark Mode Note
+        </div>
+        <div class="btn-row">
+          <button class="btn-icon">📌</button>
+          <button class="btn-icon">_</button>
+          <button class="btn-icon">✕</button>
+        </div>
+      </div>
+      <div class="note-body">
+        Ideal for nighttime coding sessions and dark websites.<br><br>
+        <code>chrome.storage.local</code> guarantees zero cloud latency or sync conflicts.
+      </div>
+    </div>
+
+    <!-- 5. Color Palette Showcase Card -->
+    <div class="palette-feature-card">
+      <div class="p-title">
+        <span>6 Curated Themes</span>
+        <span class="tag">Accessible</span>
+      </div>
+      <div class="p-swatches">
+        <div class="swatch s1">🟡</div>
+        <div class="swatch s2">🟢</div>
+        <div class="swatch s3">🔵</div>
+        <div class="swatch s4">🌸</div>
+        <div class="swatch s5">🟣</div>
+        <div class="swatch s6">🌙</div>
+      </div>
+      <div class="p-desc">
+        Engineered specifically for text readability with tested WCAG AA contrast on both light and dark websites.
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

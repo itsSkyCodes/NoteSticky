@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Small Promo Tile (440x280)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 440px;
+      height: 280px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #311042 100%);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Ambient Warm Glow behind icon */
+    .glow {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(245, 158, 11, 0.35) 0%, transparent 70%);
+      top: 20px;
+      pointer-events: none;
+    }
+
+    .icon-box {
+      width: 72px;
+      height: 72px;
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      border-radius: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 38px;
+      box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.2);
+      margin-bottom: 14px;
+      z-index: 10;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #ffffff, #fef08a);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      z-index: 10;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #cbd5e1;
+      max-width: 340px;
+      line-height: 1.4;
+      margin-bottom: 14px;
+      z-index: 10;
+    }
+
+    .tags {
+      display: flex;
+      gap: 8px;
+      z-index: 10;
+    }
+    .tag {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="icon-box">📝</div>
+  <div class="title">NoteSticky</div>
+  <div class="subtitle">Colorful Sticky Notes & Checklists on Any Webpage</div>
+  <div class="tags">
+    <div class="tag">Manifest V3</div>
+    <div class="tag">100% Offline</div>
+    <div class="tag">Central Dashboard</div>
+  </div>
+</body>
+</html>

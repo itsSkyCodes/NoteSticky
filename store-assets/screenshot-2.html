@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot 2 - Central Dashboard Popup</title>
+  <link rel="stylesheet" href="../popup/popup.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(circle at 50% 30%, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    /* Background subtle grid pattern */
+    .bg-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      z-index: 1;
+    }
+
+    /* Marketing callout badges */
+    .banner-top {
+      position: absolute;
+      top: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 10px 24px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fde68a;
+      z-index: 10;
+    }
+    .banner-top span.glow {
+      background: #f59e0b;
+      color: #78350f;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    /* Popup Frame in Center */
+    .popup-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 440px;
+      background: #ffffff;
+      color: #0f172a;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    }
+
+    /* Side Callout annotations */
+    .annotation-card {
+      position: absolute;
+      z-index: 10;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 16px 20px;
+      border-radius: 12px;
+      width: 280px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+    }
+    .annotation-card.left {
+      left: 80px;
+      top: 260px;
+    }
+    .annotation-card.right {
+      right: 80px;
+      top: 380px;
+    }
+    .ann-icon {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .ann-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #f8fafc;
+      margin-bottom: 6px;
+    }
+    .ann-desc {
+      font-size: 13px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* Popup internal layout */
+    .app-header {
+      background: #ffffff;
+      padding: 16px;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-img {
+      width: 32px;
+      height: 32px;
+      background: #fef3c7;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+    .app-title-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .stats-badge {
+      font-size: 11px;
+      background: #f1f5f9;
+      color: #64748b;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+    .header-btns {
+      display: flex;
+      gap: 8px;
+    }
+    .btn-h {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+    }
+    .btn-h.primary {
+      background: #f59e0b;
+      color: #ffffff;
+      border-color: #f59e0b;
+    }
+
+    .search-section {
+      padding: 12px 16px;
+      background: #f8fafc;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .search-box {
+      width: 100%;
+      height: 36px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: #0f172a;
+    }
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .f-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 9999px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      color: #64748b;
+    }
+    .f-pill.active {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+
+    .notes-list {
+      padding: 12px 16px;
+      max-height: 440px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .dashboard-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border-left: 5px solid #f59e0b;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .dashboard-card.green {
+      border-left-color: #10b981;
+    }
+    .dashboard-card.blue {
+      border-left-color: #0ea5e9;
+    }
+    .dashboard-card.rose {
+      border-left-color: #f43f5e;
+    }
+
+    .c-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .c-title {
+      font-weight: 700;
+      font-size: 14px;
+      color: #0f172a;
+    }
+    .c-domain {
+      font-size: 11px;
+      font-weight: 600;
+      color: #0284c7;
+      background: #e0f2fe;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .c-body {
+      font-size: 12px;
+      color: #64748b;
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+    .c-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .jump-btn {
+      color: #d97706;
+      font-weight: 600;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-grid"></div>
+
+  <!-- Top Headline -->
+  <div class="banner-top">
+    <span class="glow">CENTRAL DASHBOARD</span>
+    <span>Search, Filter & Jump to Any Note Across the Entire Web</span>
+  </div>
+
+  <!-- Left Annotation -->
+  <div class="annotation-card left">
+    <div class="ann-icon">🔍</div>
+    <div class="ann-title">Instant Global Search</div>
+    <div class="ann-desc">Find any thought, snippet, or checklist item across hundreds of websites in milliseconds.</div>
+  </div>
+
+  <!-- Right Annotation -->
+  <div class="annotation-card right">
+    <div class="ann-icon">🚀</div>
+    <div class="ann-title">1-Click Jump to URL</div>
+    <div class="ann-desc">Click any note to immediately open the exact webpage where you originally pinned it.</div>
+  </div>
+
+  <!-- Center Popup Dashboard -->
+  <div class="popup-wrapper">
+    <div class="app-header">
+      <div class="logo-group">
+        <div class="logo-img">📝</div>
+        <div>
+          <div class="app-title-text">NoteSticky</div>
+          <div class="stats-badge">4 Notes • 3 Domains</div>
+        </div>
+      </div>
+      <div class="header-btns">
+        <button class="btn-h">⚙️ Backup</button>
+        <button class="btn-h primary">+ New Note</button>
+      </div>
+    </div>
+
+    <div class="search-section">
+      <div class="search-box">
+        <span>🔍</span>
+        <span>release</span>
+      </div>
+      <div class="filter-pills">
+        <div class="f-pill active">All (4)</div>
+        <div class="f-pill">🟡 Yellow (2)</div>
+        <div class="f-pill">🟢 Emerald (1)</div>
+        <div class="f-pill">🔵 Blue (1)</div>
+      </div>
+    </div>
+
+    <div class="notes-list">
+      <!-- Card 1 -->
+      <div class="dashboard-card">
+        <div class="c-top">
+          <div class="c-title">🚀 Release v1.0.0 Checklist</div>
+          <div class="c-domain">github.com</div>
+        </div>
+        <div class="c-body">
+          ☑️ Manifest V3 audit &bull; ☑️ Shadow DOM isolation &bull; ⬜ Publish to Web Store
+        </div>
+        <div class="c-footer">
+          <span>Updated 5m ago</span>
+          <span class="jump-btn">Open Page &rarr;</span>
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="dashboard-card blue">
+        <div class="c-top">
+          <div class="c-title">💡 Shadow DOM Architecture</div>
+          <div class="c-domain">developer.mozilla.org</div>
+        </div>
+        <div class="c-body">
+          All notes persist in chrome.storage.local with zero tracking or remote servers.
+        </div>
+        <div class="c-footer">
+          <span>Updated 1h ago</span>
+          <span class="jump-btn">Open Page &rarr;</span>
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="dashboard-card green">
+        <div class="c-top">
+          <div class="c-title">📋 Sprint 14 Priorities</div>
+          <div class="c-domain">linear.app</div>
+        </div>
+        <div class="c-body">
+          Review contrast ratios and keyboard navigation shortcuts for WCAG AA compliance.
+        </div>
+        <div class="c-footer">
+          <span>Updated 3h ago</span>
+          <span class="jump-btn">Open Page &rarr;</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

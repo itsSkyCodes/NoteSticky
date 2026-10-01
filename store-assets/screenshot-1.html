@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot 1 - Webpage Notes</title>
+  <link rel="stylesheet" href="../content/content.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 1280px;
+      height: 800px;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      position: relative;
+    }
+    
+    /* Top Browser Chrome Bar */
+    .browser-bar {
+      height: 48px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+      color: #f8fafc;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .traffic-lights {
+      display: flex;
+      gap: 8px;
+    }
+    .traffic-light {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .tl-red { background: #ef4444; }
+    .tl-yellow { background: #f59e0b; }
+    .tl-green { background: #10b981; }
+    
+    .url-bar {
+      flex: 1;
+      max-width: 600px;
+      height: 30px;
+      background: #334155;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      font-size: 13px;
+      color: #cbd5e1;
+      gap: 8px;
+    }
+    .url-bar svg { width: 14px; height: 14px; fill: #94a3b8; }
+    
+    .feature-badge {
+      background: #f59e0b;
+      color: #78350f;
+      font-weight: 700;
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Webpage Content Mockup */
+    .page-container {
+      display: flex;
+      height: calc(800px - 48px);
+      background: #ffffff;
+    }
+    .sidebar {
+      width: 260px;
+      border-right: 1px solid #e2e8f0;
+      padding: 24px 20px;
+      background: #f8fafc;
+    }
+    .sidebar h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .sidebar-link {
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #334155;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    .sidebar-link.active {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 600;
+    }
+    
+    .main-article {
+      flex: 1;
+      padding: 40px 60px;
+      max-width: 820px;
+    }
+    .article-tag {
+      color: #2563eb;
+      font-weight: 600;
+      font-size: 13px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .article-title {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #0f172a;
+      margin-bottom: 16px;
+    }
+    .article-meta {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 16px;
+    }
+    .article-p {
+      font-size: 16px;
+      line-height: 1.65;
+      color: #334155;
+      margin-bottom: 20px;
+    }
+    .code-box {
+      background: #0f172a;
+      color: #e2e8f0;
+      padding: 18px 24px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    /* Pinned Sticky Notes */
+    .note-showcase-1 {
+      position: absolute;
+      top: 100px;
+      right: 60px;
+      width: 340px;
+      background: #fef3c7;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      box-shadow: 0 20px 30px -10px rgba(245, 158, 11, 0.25), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+    }
+    
+    .note-header {
+      padding: 12px 14px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(217, 119, 6, 0.15);
+    }
+    .note-title-text {
+      font-weight: 700;
+      font-size: 15px;
+      color: #78350f;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .note-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-circle {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      border: none;
+      background: rgba(180, 83, 9, 0.1);
+      color: #78350f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .note-content-area {
+      padding: 14px;
+    }
+    
+    .checklist-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      font-size: 14px;
+      color: #451a03;
+    }
+    .checklist-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: #d97706;
+      cursor: pointer;
+    }
+    .checklist-row.done span {
+      text-decoration: line-through;
+      color: #92400e;
+      opacity: 0.75;
+    }
+
+    .color-bar {
+      display: flex;
+      gap: 8px;
+      padding: 8px 14px 12px;
+      border-top: 1px dashed rgba(217, 119, 6, 0.2);
+    }
+    .c-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .c-dot.selected {
+      border-color: #78350f;
+      transform: scale(1.15);
+    }
+    .c-yellow { background: #fef08a; }
+    .c-emerald { background: #a7f3d0; }
+    .c-sky { background: #bae6fd; }
+    .c-rose { background: #fecdd3; }
+    .c-purple { background: #e9d5ff; }
+    .c-slate { background: #334155; }
+
+    /* Note 2 */
+    .note-showcase-2 {
+      position: absolute;
+      top: 450px;
+      right: 120px;
+      width: 320px;
+      background: #e0f2fe;
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      box-shadow: 0 16px 24px -8px rgba(14, 165, 233, 0.25), 0 8px 10px -4px rgba(0, 0, 0, 0.08);
+      z-index: 90;
+    }
+    .note-showcase-2 .note-header {
+      border-bottom: 1px solid rgba(2, 132, 199, 0.15);
+    }
+    .note-showcase-2 .note-title-text {
+      color: #0369a1;
+    }
+    .note-showcase-2 .note-content-area {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #0c4a6e;
+    }
+
+    /* Floating Pill */
+    .fab-pill {
+      position: absolute;
+      bottom: 24px;
+      right: 32px;
+      background: #ffffff;
+      padding: 10px 18px;
+      border-radius: 9999px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #0f172a;
+      z-index: 200;
+    }
+    .fab-pill .badge {
+      background: #fef3c7;
+      color: #b45309;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+    }
+    .fab-btn-add {
+      background: #f59e0b;
+      color: #ffffff;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    /* Showcase Banner Overlay */
+    .headline-overlay {
+      position: absolute;
+      top: 64px;
+      right: 430px;
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid #fed7aa;
+      border-left: 4px solid #f59e0b;
+      padding: 10px 18px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #9a3412;
+      z-index: 50;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mock Browser Bar -->
+  <div class="browser-bar">
+    <div class="traffic-lights">
+      <div class="traffic-light tl-red"></div>
+      <div class="traffic-light tl-yellow"></div>
+      <div class="traffic-light tl-green"></div>
+    </div>
+    <div class="url-bar">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      https://developer.mozilla.org/en-US/docs/Web/API/ShadowRoot
+    </div>
+    <div class="feature-badge">
+      📌 NoteSticky Active
+    </div>
+  </div>
+
+  <div class="page-container">
+    <div class="sidebar">
+      <h4>Documentation</h4>
+      <div class="sidebar-link active">Shadow DOM API</div>
+      <div class="sidebar-link">Custom Elements</div>
+      <div class="sidebar-link">Chrome Storage</div>
+      <div class="sidebar-link">Service Workers</div>
+      <div class="sidebar-link">Manifest V3 Guide</div>
+    </div>
+
+    <div class="main-article">
+      <div class="article-tag">Web Standards &bull; Guide</div>
+      <h1 class="article-title">Using Shadow DOM for Style Encapsulation</h1>
+      <div class="article-meta">
+        <span>Updated Today</span>
+        <span>•</span>
+        <span>6 min read</span>
+        <span>•</span>
+        <span>Reference Architecture</span>
+      </div>
+
+      <p class="article-p">
+        Shadow DOM allows hidden DOM trees to be attached to elements in the regular DOM tree — this shadow DOM tree starts with a shadow root, underneath which can be attached any element, in the same way as the normal DOM.
+      </p>
+
+      <div class="code-box">
+const host = document.createElement('div');<br>
+const shadow = host.attachShadow({ mode: 'open' });<br>
+// Notes rendered here remain immune to page stylesheet rules!
+      </div>
+
+      <p class="article-p">
+        Because CSS scoped within a shadow root doesn't bleed out into host pages, third-party browser extensions can guarantee predictable UI rendering across every website.
+      </p>
+    </div>
+  </div>
+
+  <div class="headline-overlay">
+    <span>✨ <strong>Pin Sticky Notes Anywhere</strong> — Stays right where you placed them on any URL.</span>
+  </div>
+
+  <!-- Note 1: Yellow Checklist -->
+  <div class="note-showcase-1">
+    <div class="note-header">
+      <div class="note-title-text">
+        <span>🚀</span> Release Checklist
+      </div>
+      <div class="note-actions">
+        <div class="btn-circle">📌</div>
+        <div class="btn-circle">🎨</div>
+        <div class="btn-circle">_</div>
+        <div class="btn-circle">✕</div>
+      </div>
+    </div>
+    <div class="note-content-area">
+      <div class="checklist-row done">
+        <input type="checkbox" checked disabled>
+        <span>Manifest V3 security audit</span>
+      </div>
+      <div class="checklist-row done">
+        <input type="checkbox" checked disabled>
+        <span>Shadow DOM style isolation</span>
+      </div>
+      <div class="checklist-row done">
+        <input type="checkbox" checked disabled>
+        <span>High-contrast WCAG AA colors</span>
+      </div>
+      <div class="checklist-row">
+        <input type="checkbox" disabled>
+        <span>Publish to Chrome Web Store</span>
+      </div>
+    </div>
+    <div class="color-bar">
+      <div class="c-dot c-yellow selected"></div>
+      <div class="c-dot c-emerald"></div>
+      <div class="c-dot c-sky"></div>
+      <div class="c-dot c-rose"></div>
+      <div class="c-dot c-purple"></div>
+      <div class="c-dot c-slate"></div>
+    </div>
+  </div>
+
+  <!-- Note 2: Sky Blue Note -->
+  <div class="note-showcase-2">
+    <div class="note-header">
+      <div class="note-title-text">
+        <span>💡</span> Architecture Reference
+      </div>
+      <div class="note-actions">
+        <div class="btn-circle">📌</div>
+        <div class="btn-circle">_</div>
+        <div class="btn-circle">✕</div>
+      </div>
+    </div>
+    <div class="note-content-area">
+      All notes persist in <code>chrome.storage.local</code>.<br>
+      Zero network tracking or remote servers.<br>
+      Fully offline & private.
+    </div>
+  </div>
+
+  <!-- Floating Action Bar -->
+  <div class="fab-pill">
+    <span>📝 NoteSticky</span>
+    <span class="badge">2 Notes</span>
+    <button class="fab-btn-add">+ New Sticky Note</button>
+  </div>
+
+</body>
+</html>
