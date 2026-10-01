@@ -293,11 +293,13 @@ input:focus-visible,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 0 10px;
+  padding: 0 6px 0 8px;
   cursor: grab;
   user-select: none;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   transition: background-color 0.22s ease;
+  gap: 4px;
+  overflow: hidden;
 }
 
 .note-header-left {
@@ -307,6 +309,25 @@ input:focus-visible,
   font-size: 12px;
   font-weight: 600;
   opacity: 0.85;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.note-title-preview {
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sticky-note.minimized .note-title-preview {
+  display: block;
 }
 
 .pin-indicator {
@@ -334,6 +355,8 @@ input:focus-visible,
   display: flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0 !important;
+  margin-left: auto;
 }
 
 .icon-btn {
@@ -589,7 +612,8 @@ input:focus-visible,
 .sticky-note.minimized {
   min-height: 36px !important;
   height: 36px !important;
-  width: 180px !important;
+  width: 250px !important;
+  min-width: 210px !important;
   overflow: hidden;
 }
 

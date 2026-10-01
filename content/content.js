@@ -1,9 +1,14 @@
 // NoteSticky - Content Script (Encapsulated in Shadow DOM)
 
 (() => {
-  // Prevent duplicate injection
-  if (window.__notesticky_injected__) return;
+  // Prevent duplicate injection across both isolated and main worlds
+  if (window.__notesticky_injected__ || (document.documentElement && document.documentElement.hasAttribute('data-notesticky-injected'))) {
+    return;
+  }
   window.__notesticky_injected__ = true;
+  if (document.documentElement) {
+    document.documentElement.setAttribute('data-notesticky-injected', 'true');
+  }
 
   // Global state for content script
   let shadowRoot = null;
@@ -44,13 +49,30 @@
   // Initialize Shadow DOM Container
   function initContainer() {
     let host = document.getElementById('notesticky-root');
-    if (!host) {
-      host = document.createElement('div');
-      host.id = 'notesticky-root';
-      (document.body || document.documentElement).appendChild(host);
+    if (host) {
+      if (host.shadowRoot) {
+        shadowRoot = host.shadowRoot;
+        return; // Shadow DOM already initialized on this host
+      }
+      try {
+        host.remove();
+      } catch (e) {}
     }
 
-    shadowRoot = host.attachShadow({ mode: 'open' });
+    host = document.createElement('div');
+    host.id = 'notesticky-root';
+    (document.body || document.documentElement).appendChild(host);
+
+    try {
+      shadowRoot = host.attachShadow({ mode: 'open' });
+    } catch (e) {
+      if (host.shadowRoot) {
+        shadowRoot = host.shadowRoot;
+        return;
+      }
+      console.warn('NoteSticky: attachShadow failed', e);
+      return;
+    }
 
     // Link the external CSS
     const link = document.createElement('link');
@@ -660,7 +682,8 @@
     `).join('');
 
     noteEl.setAttribute('role', 'region');
-    noteEl.setAttribute('aria-label', `Sticky Note: ${(note.text || 'Untitled').trim().slice(0, 30) || 'Untitled'}`);
+    const fullTitle = (note.text || (note.checklistItems && note.checklistItems[0] ? note.checklistItems[0].text : 'Note')).trim();
+    noteEl.setAttribute('aria-label', `Sticky Note: ${(fullTitle || 'Untitled').slice(0, 30)}`);
 
     noteEl.innerHTML = `
       <div class="note-header">
@@ -668,8 +691,8 @@
           <button type="button" class="pin-indicator ${note.pinned ? 'pinned' : ''}" title="${note.pinned ? 'Pinned to screen (click to scroll with page)' : 'Scrolls with page (click to pin to screen)'}" aria-label="${note.pinned ? 'Unpin note (currently pinned to screen)' : 'Pin note to screen'}" aria-pressed="${!!note.pinned}">
             ${note.pinned ? '📌' : '📍'}
           </button>
-          <span class="note-title-preview" style="display: ${note.minimized ? 'inline' : 'none'}; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-            ${escapeHtml(note.text || 'Note')}
+          <span class="note-title-preview" title="${escapeHtml(fullTitle || 'Note')}">
+            ${escapeHtml(fullTitle || 'Note')}
           </span>
         </div>
         <div class="note-header-actions" role="toolbar" aria-label="Note actions">
@@ -783,6 +806,13 @@
         minimizeBtn.textContent = note.minimized ? '🗖' : '🗕';
         minimizeBtn.title = note.minimized ? 'Expand' : 'Minimize';
         minimizeBtn.setAttribute('aria-label', note.minimized ? 'Expand note' : 'Minimize note');
+      }
+
+      const preview = noteEl.querySelector('.note-title-preview');
+      if (preview) {
+        const fullTitle = (note.text || (note.checklistItems && note.checklistItems[0] ? note.checklistItems[0].text : 'Note')).trim();
+        preview.textContent = fullTitle || 'Note';
+        preview.title = fullTitle || 'Note';
       }
 
       const checklistBtn = noteEl.querySelector('#btn-checklist');
@@ -1016,8 +1046,9 @@
 
       const preview = noteEl.querySelector('.note-title-preview');
       if (preview) {
-        preview.style.display = current.minimized ? 'inline' : 'none';
-        preview.textContent = current.text || 'Note';
+        const previewText = (current.text || (current.checklistItems && current.checklistItems[0] ? current.checklistItems[0].text : 'Note')).trim();
+        preview.textContent = previewText || 'Note';
+        preview.title = previewText || 'Note';
       }
 
       saveNotesDebounced(id);
@@ -1047,7 +1078,13 @@
 
         current.text = body.innerText;
         current.updatedAt = Date.now();
-        noteEl.setAttribute('aria-label', `Sticky Note: ${(current.text || 'Untitled').trim().slice(0, 30) || 'Untitled'}`);
+        const previewText = current.text.trim();
+        noteEl.setAttribute('aria-label', `Sticky Note: ${(previewText || 'Untitled').slice(0, 30)}`);
+        const preview = noteEl.querySelector('.note-title-preview');
+        if (preview) {
+          preview.textContent = previewText || 'Note';
+          preview.title = previewText || 'Note';
+        }
         showStatus(noteEl, 'Saving...');
         saveNotesDebounced(id);
       });
@@ -1560,6 +1597,12 @@
           noteEl.classList.remove('minimized');
           const current = notesData.find(n => n.id === noteId);
           if (current) current.minimized = false;
+          const minBtn = noteEl.querySelector('#btn-minimize');
+          if (minBtn) {
+            minBtn.textContent = '🗕';
+            minBtn.title = 'Minimize';
+            minBtn.setAttribute('aria-label', 'Minimize note');
+          }
         }
 
         // Scroll into view if not fixed

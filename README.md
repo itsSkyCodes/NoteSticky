@@ -36,15 +36,14 @@ A powerful, aesthetic, modern **Google Chrome Extension (Manifest V3)** that all
   - **Smart Filtering**: Filter by "This Page", "All Notes", "Checklists", or by color.
   - **Live Search**: Instant instant search across note content, checklists, domains, and page titles.
   - **🚀 Jump to Note**: Clicking "Jump to Page" switches to that tab (or opens the URL) and smoothly scrolls to and highlights the sticky note with a pulsing gold aura!
-  - **📋 Quick Copy**: 1-click copy note or checklist content to clipboard.
-  - **📥 Export / 📤 Backup**: Export all notes as clean Markdown (`.md`) or full JSON backup (`.json`), with 1-click JSON restore.
+  - **📥 Export / 📤 Import**: Export all notes as a JSON backup (`.json`) with 1-click import & restore.
   - **🌙 Dark & Light Themes**: Auto-detects system theme or manually toggle dark mode.
 
 - **⌨️ Shortcuts & Context Menus**:
   - Right-click anywhere on any page $\rightarrow$ **"📌 Add Sticky Note here"**.
   - Highlight any text, right click $\rightarrow$ **"📝 Create Sticky Note from selection"**.
   - Default keyboard shortcut: <kbd>Alt+Shift+N</kbd> (Mac: <kbd>Ctrl+Shift+N</kbd>) to create a new note.
-  - Visibility shortcut: <kbd>Alt+Shift+H</kbd> to toggle all notes on/off.
+  - Visibility shortcut: <kbd>Alt+Shift+H</kbd> (Mac: <kbd>Ctrl+Shift+H</kbd>)to toggle all notes on/off.
   - Extension icon badge displays live count of notes on the current active tab.
 
 ---
@@ -62,7 +61,7 @@ Loading the extension takes less than 30 seconds:
 4. Click the **"Load unpacked"** button in the top left.
 5. Select this project folder:
    ```text
-   /Users/bugsbunny/Documents/personalProject/sticky notes
+   sticky notes
    ```
 6. That's it! 🎉 You will see **NoteSticky - Webpage & Dashboard Sticky Notes** appear in your extension list.
 7. Click the **Puzzle icon** (Extensions menu) in the top-right of Chrome and pin **NoteSticky** for quick access.
@@ -72,7 +71,7 @@ Loading the extension takes less than 30 seconds:
 ## 🧪 Testing the Extension
 
 1. After loading the unpacked extension, open the included test page in Chrome:
-   - Double-click `demo.html` or drag it into Chrome (or open `file:///Users/bugsbunny/Documents/personalProject/sticky%20notes/demo.html`).
+   - Open `demo.html` by double-clicking the file, dragging it into Chrome, or opening it directly in your browser.
 2. You will see the floating quick-action pill in the bottom right corner.
 3. Click **"➕ New Note"**, drag it around, change colors, switch to checklist mode, and open the popup dashboard!
 

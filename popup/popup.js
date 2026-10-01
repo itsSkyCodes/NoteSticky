@@ -33,7 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnClearAllNotes = document.getElementById('btn-clear-all-notes');
 
   // Export / Import elements
-  const btnExportMd = document.getElementById('btn-export-md');
   const btnExportJson = document.getElementById('btn-export-json');
   const importJsonInput = document.getElementById('import-json-input');
 
@@ -637,50 +636,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     settingsModal.style.display = 'none';
   });
 
-  // Export as Markdown
-  btnExportMd.addEventListener('click', () => {
+  // Export notes as JSON
+  btnExportJson.addEventListener('click', () => {
     if (allNotes.length === 0) {
       showToast('No notes to export.');
       return;
     }
-
-    let md = `# NoteSticky - Exported Notes (${new Date().toLocaleDateString()})\n\n`;
-
-    allNotes.forEach((note, idx) => {
-      md += `## ${idx + 1}. ${note.pageTitle || note.domain || 'Sticky Note'}\n`;
-      md += `- **URL:** ${note.url || 'None'}\n`;
-      md += `- **Created:** ${new Date(note.createdAt).toLocaleString()}\n`;
-      md += `- **Color:** ${note.color}\n\n`;
-
-      if (note.isChecklist) {
-        md += `### Checklist:\n\n`;
-        (note.checklistItems || []).forEach(item => {
-          md += `- [${item.done ? 'x' : ' '}] ${item.text || 'Untitled'}\n`;
-        });
-      } else {
-        md += `${(note.text || '').trim() || '_Empty note_'}\n`;
-      }
-      md += `\n---\n\n`;
-    });
-
-    downloadBlob(md, `NoteSticky_Notes_${Date.now()}.md`, 'text/markdown');
-    showToast('Markdown exported!');
-  });
-
-  // Export as JSON backup
-  btnExportJson.addEventListener('click', () => {
-    if (allNotes.length === 0) {
-      showToast('No notes to backup.');
-      return;
-    }
-    const backupData = {
+    const exportData = {
       version: '1.0.0',
       exportedAt: new Date().toISOString(),
       notes: allNotes,
       settings: currentSettings
     };
-    downloadBlob(JSON.stringify(backupData, null, 2), `NoteSticky_Backup_${Date.now()}.json`, 'application/json');
-    showToast('Backup JSON downloaded!');
+    downloadBlob(JSON.stringify(exportData, null, 2), `NoteSticky_Notes_${Date.now()}.json`, 'application/json');
+    showToast('Notes exported!');
   });
 
   // Import JSON backup

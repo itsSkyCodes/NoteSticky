@@ -215,6 +215,13 @@
       };
     }
   </script>
-  <script src="content/content.js"></script>
+  <script>
+    // Only load content.js standalone if extension has not already injected it
+    if (!document.documentElement.hasAttribute('data-notesticky-injected') && !document.getElementById('notesticky-root')) {
+      const script = document.createElement('script');
+      script.src = 'content/content.js';
+      document.body.appendChild(script);
+    }
+  </script>
 </body>
 </html>
