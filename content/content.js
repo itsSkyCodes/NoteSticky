@@ -31,9 +31,34 @@
   let lastDeletedNote = null;
   let undoToastTimeout = null;
 
+  const extractDomain = (url) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname) return parsed.hostname.toLowerCase();
+      if (parsed.protocol === 'file:') return 'local-file';
+      return (parsed.origin || '').toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  };
+
   const getCurrentUrl = () => window.location.href.split('#')[0];
-  const getCurrentDomain = () => window.location.hostname;
-  const getPageTitle = () => document.title || window.location.hostname;
+  const getCurrentDomain = () => {
+    const host = window.location.hostname;
+    if (host) return host.toLowerCase();
+    if (window.location.protocol === 'file:') return 'local-file';
+    return (window.location.origin || 'local').toLowerCase();
+  };
+  const getPageTitle = () => document.title || getCurrentDomain();
+
+  const isNoteOnCurrentDomain = (note) => {
+    if (!note) return false;
+    const currentDom = getCurrentDomain();
+    if (!currentDom) return false;
+    const noteDom = (note.domain || extractDomain(note.url) || '').toLowerCase();
+    return noteDom === currentDom;
+  };
 
   // Normalize z-indexes to prevent unbounded growth and integer overflow
   function normalizeZIndices() {
@@ -283,11 +308,10 @@
     }
   });
 
-  // Render all notes belonging to the current page
+  // Render all notes belonging to the current domain
   function renderCurrentPageNotes() {
     if (!canvasEl) return;
-    const pageUrl = getCurrentUrl();
-    const activePageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
+    const activePageNotes = notesData.filter(isNoteOnCurrentDomain);
 
     // Remove any notes no longer present
     for (const [id, element] of notesMap.entries()) {
@@ -466,8 +490,7 @@
 
   function updateFabBadge() {
     if (!fabEl) return;
-    const pageUrl = getCurrentUrl();
-    const count = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl).length;
+    const count = notesData.filter(isNoteOnCurrentDomain).length;
     const counter = fabEl.querySelector('#fab-counter');
     if (counter) {
       counter.textContent = count.toString();
@@ -478,21 +501,20 @@
   }
 
   // Handle click on the Floating Quick Toolbar Hide/Show button
-  // Hides or shows all currently open popup notes on this page simultaneously
+  // Hides or shows all currently open popup notes on this domain simultaneously
   function handleFabToggleClick() {
-    const pageUrl = getCurrentUrl();
-    const pageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
+    const pageNotes = notesData.filter(isNoteOnCurrentDomain);
     if (pageNotes.length === 0) return;
 
     if (canvasEl && canvasEl.style.display === 'none') {
       canvasEl.style.display = 'block';
     }
 
-    // Check if any notes on this page are currently visible
+    // Check if any notes on this domain are currently visible
     const hasVisibleNotes = pageNotes.some(n => !n.hidden);
 
-    // If at least one note is currently visible, hide all notes on this page simultaneously!
-    // If all notes are currently hidden, show all notes on this page simultaneously!
+    // If at least one note is currently visible, hide all notes on this domain simultaneously!
+    // If all notes are currently hidden, show all notes on this domain simultaneously!
     const shouldHideAll = hasVisibleNotes;
 
     pageNotes.forEach(note => {
@@ -539,8 +561,7 @@
   // Update Hide/Show button icon & tooltip on the Floating Quick Toolbar
   function updateFabButtonState() {
     if (!fabEl) return;
-    const pageUrl = getCurrentUrl();
-    const pageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
+    const pageNotes = notesData.filter(isNoteOnCurrentDomain);
 
     const toggleBtn = fabEl.querySelector('#fab-toggle-btn');
     const toggleIcon = fabEl.querySelector('#fab-toggle-icon');
@@ -548,7 +569,7 @@
 
     if (pageNotes.length === 0) {
       toggleIcon.textContent = '👁️';
-      toggleBtn.title = 'No notes on this page';
+      toggleBtn.title = 'No notes on this domain';
       return;
     }
 
@@ -556,10 +577,10 @@
 
     if (hasVisibleNotes) {
       toggleIcon.textContent = '👁️';
-      toggleBtn.title = `Hide all notes on this page (${pageNotes.length})`;
+      toggleBtn.title = `Hide all notes on this domain (${pageNotes.length})`;
     } else {
       toggleIcon.textContent = '🙈';
-      toggleBtn.title = `Show all notes on this page (${pageNotes.length})`;
+      toggleBtn.title = `Show all notes on this domain (${pageNotes.length})`;
     }
   }
 
@@ -574,8 +595,7 @@
       return;
     }
 
-    const pageUrl = getCurrentUrl();
-    const pageNotes = notesData.filter(n => n.url && n.url.split('#')[0] === pageUrl);
+    const pageNotes = notesData.filter(isNoteOnCurrentDomain);
     if (pageNotes.length === 0) return;
 
     const colors = {

@@ -61,8 +61,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Error fetching active tab:', err);
   }
 
+  const extractDomain = (url) => {
+    if (!url) return '';
+    try {
+      const parsed = new URL(url);
+      if (parsed.hostname) return parsed.hostname.toLowerCase();
+      if (parsed.protocol === 'file:') return 'local-file';
+      return (parsed.origin || '').toLowerCase();
+    } catch (_) {
+      return '';
+    }
+  };
+
   const currentUrl = currentTab && currentTab.url ? currentTab.url.split('#')[0] : '';
-  const currentDomain = currentTab && currentTab.url ? new URL(currentTab.url).hostname : '';
+  const currentDomain = currentTab && currentTab.url ? extractDomain(currentTab.url) : '';
 
   // 2. Load settings & notes
   function loadData() {
@@ -132,8 +144,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return allNotes.filter(note => {
       // Tab filter
       if (activeFilter === 'current-page') {
-        const noteUrl = note.url ? note.url.split('#')[0] : '';
-        if (noteUrl !== currentUrl) return false;
+        const noteDomain = (note.domain || extractDomain(note.url) || '').toLowerCase();
+        if (!currentDomain || noteDomain !== currentDomain) return false;
       } else if (activeFilter === 'checklists') {
         if (!note.isChecklist) return false;
       }
@@ -160,7 +172,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 4. Render Notes
   function render() {
     // Update count badges
-    const currentCount = allNotes.filter(n => n.url && n.url.split('#')[0] === currentUrl).length;
+    const currentCount = allNotes.filter(n => {
+      const noteDomain = (n.domain || extractDomain(n.url) || '').toLowerCase();
+      return currentDomain && noteDomain === currentDomain;
+    }).length;
     const allCount = allNotes.length;
     const checklistCount = allNotes.filter(n => n.isChecklist).length;
 
@@ -181,8 +196,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         emptyDesc.textContent = `No notes found matching "${searchQuery}".`;
         emptyAddBtn.style.display = 'none';
       } else if (activeFilter === 'current-page') {
-        emptyTitle.textContent = 'No notes on this page';
-        emptyDesc.textContent = 'Create a sticky note on this webpage to keep thoughts and reminders handy.';
+        emptyTitle.textContent = 'No notes on this domain';
+        emptyDesc.textContent = currentDomain
+          ? `Create a sticky note on ${currentDomain} to keep thoughts and reminders handy across all pages.`
+          : 'Create a sticky note on this domain to keep thoughts and reminders handy.';
         emptyAddBtn.style.display = 'inline-flex';
       } else if (activeFilter === 'checklists') {
         emptyTitle.textContent = 'No checklists found';
@@ -209,7 +226,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Create Card HTML
   function createCardHtml(note) {
-    const isThisPage = note.url && note.url.split('#')[0] === currentUrl;
+    const noteDomain = (note.domain || extractDomain(note.url) || '').toLowerCase();
+    const isThisDomain = Boolean(currentDomain && noteDomain === currentDomain);
     const timeAgo = formatTimeAgo(note.updatedAt || note.createdAt);
     const isEditing = editingNoteId === note.id;
 
@@ -312,7 +330,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           <span>${timeAgo}</span>
           <button class="card-jump-btn btn-card-jump" title="Open and jump to this note on webpage">
             <span>🚀</span>
-            <span>${isThisPage ? 'Focus on Page' : 'Jump to Page'}</span>
+            <span>${isThisDomain ? 'Focus on Page' : 'Jump to Page'}</span>
           </button>
         </div>
       </div>
@@ -570,14 +588,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Jump to Note on Webpage
   function jumpToNote(note) {
-    if (!note.url) {
-      showToast('No URL associated with this note.');
+    if (!note.url && !note.domain) {
+      showToast('No URL or domain associated with this note.');
       return;
     }
     chrome.runtime.sendMessage({
       action: 'FOCUS_NOTE',
       noteId: note.id,
-      url: note.url
+      url: note.url,
+      domain: note.domain || extractDomain(note.url)
     }, () => {
       window.close(); // Close popup so user is on the page
     });
@@ -835,12 +854,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Clear notes on current page
+  // Clear notes on current domain
   btnClearPageNotes.addEventListener('click', () => {
-    if (!confirm('Are you sure you want to delete all notes on this page?')) return;
-    allNotes = allNotes.filter(n => (n.url ? n.url.split('#')[0] : '') !== currentUrl);
+    if (!currentDomain) {
+      showToast('No domain detected for current tab.');
+      return;
+    }
+    if (!confirm(`Are you sure you want to delete all notes on ${currentDomain}?`)) return;
+    allNotes = allNotes.filter(n => {
+      const noteDomain = (n.domain || extractDomain(n.url) || '').toLowerCase();
+      return noteDomain !== currentDomain;
+    });
     saveAndRender();
-    showToast('Page notes deleted.');
+    showToast(`Notes on ${currentDomain} deleted.`);
     settingsModal.style.display = 'none';
   });
 

@@ -88,7 +88,20 @@ chrome.commands.onCommand.addListener((command) => {
   });
 });
 
-// Update extension icon badge count for current URL
+// Extract domain from URL
+function extractDomain(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname) return parsed.hostname.toLowerCase();
+    if (parsed.protocol === 'file:') return 'local-file';
+    return (parsed.origin || '').toLowerCase();
+  } catch (_) {
+    return '';
+  }
+}
+
+// Update extension icon badge count for current domain
 function updateBadgeForTab(tabId, url) {
   if (!tabId || !url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('chrome-extension://')) {
     try {
@@ -100,10 +113,19 @@ function updateBadgeForTab(tabId, url) {
   chrome.storage.local.get(['notes'], (res) => {
     if (chrome.runtime.lastError) return;
     const notes = res.notes || [];
-    // Match current page URL (ignoring hash)
-    const cleanUrl = url.split('#')[0];
-    const pageNotes = notes.filter(n => n.url && n.url.split('#')[0] === cleanUrl);
-    const count = pageNotes.length;
+    const targetDomain = extractDomain(url);
+    if (!targetDomain) {
+      try {
+        chrome.action.setBadgeText({ tabId, text: '' });
+      } catch (_) {}
+      return;
+    }
+
+    const domainNotes = notes.filter(n => {
+      const noteDomain = (n.domain || extractDomain(n.url) || '').toLowerCase();
+      return noteDomain === targetDomain;
+    });
+    const count = domainNotes.length;
 
     try {
       if (count > 0) {
@@ -154,10 +176,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (request.action === "FOCUS_NOTE") {
     // Navigate or switch to the tab containing the note, and tell it to highlight
-    const { noteId, url } = request;
+    const { noteId, url, domain } = request;
+    const targetDomain = (domain || extractDomain(url) || '').toLowerCase();
     chrome.tabs.query({}, (tabs) => {
-      const cleanTarget = url.split('#')[0];
-      const existingTab = tabs.find(t => t.url && t.url.split('#')[0] === cleanTarget);
+      const cleanTarget = url ? url.split('#')[0] : '';
+      let existingTab = tabs.find(t => t.url && t.url.split('#')[0] === cleanTarget);
+      if (!existingTab && targetDomain) {
+        existingTab = tabs.find(t => t.url && extractDomain(t.url) === targetDomain);
+      }
 
       if (existingTab) {
         chrome.tabs.update(existingTab.id, { active: true }, () => {
@@ -167,18 +193,21 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }, 300);
         });
       } else {
-        chrome.tabs.create({ url }, (newTab) => {
-          // Listen once for page complete to highlight
-          const listener = (tabId, info) => {
-            if (tabId === newTab.id && info.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(listener);
-              setTimeout(() => {
-                chrome.tabs.sendMessage(newTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => {});
-              }, 600);
-            }
-          };
-          chrome.tabs.onUpdated.addListener(listener);
-        });
+        const openUrl = url || (targetDomain ? `https://${targetDomain}` : '');
+        if (openUrl) {
+          chrome.tabs.create({ url: openUrl }, (newTab) => {
+            // Listen once for page complete to highlight
+            const listener = (tabId, info) => {
+              if (tabId === newTab.id && info.status === 'complete') {
+                chrome.tabs.onUpdated.removeListener(listener);
+                setTimeout(() => {
+                  chrome.tabs.sendMessage(newTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => {});
+                }, 600);
+              }
+            };
+            chrome.tabs.onUpdated.addListener(listener);
+          });
+        }
       }
     });
     sendResponse({ success: true });
