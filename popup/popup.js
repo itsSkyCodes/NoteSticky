@@ -101,7 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Sync settings UI in modal
   function syncSettingsUI() {
-    settingFloatingBtn.checked = !!currentSettings.showFloatingButton;
+    settingFloatingBtn.checked = currentSettings.showFloatingButton !== false;
     settingPinMode.value = currentSettings.pinMode || 'page';
     settingDefaultColor.value = currentSettings.defaultColor || 'yellow';
   }
@@ -593,7 +593,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Settings changes
   settingFloatingBtn.addEventListener('change', (e) => {
     currentSettings.showFloatingButton = e.target.checked;
-    chrome.storage.local.set({ settings: currentSettings });
+    chrome.storage.local.set({ settings: currentSettings }, () => {
+      // Also notify active tab immediately
+      if (currentTab && currentTab.id) {
+        chrome.tabs.sendMessage(currentTab.id, {
+          action: 'UPDATE_SETTINGS',
+          settings: currentSettings
+        }).catch(() => {});
+      }
+    });
   });
 
   settingPinMode.addEventListener('change', (e) => {

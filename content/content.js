@@ -251,7 +251,7 @@
       renderCurrentPageNotes();
       updateFabBadge();
       updateFabButtonState();
-      toggleFabMinimize(!!currentSettings.fabMinimized, false);
+      updateFabVisibility();
     });
   }
 
@@ -261,10 +261,7 @@
 
     if (changes.settings) {
       currentSettings = { ...currentSettings, ...changes.settings.newValue };
-      if (fabEl) {
-        fabEl.style.display = currentSettings.showFloatingButton ? 'flex' : 'none';
-        toggleFabMinimize(!!currentSettings.fabMinimized, false);
-      }
+      updateFabVisibility();
       if (canvasEl) {
         canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
       }
@@ -332,7 +329,9 @@
   function createFab() {
     fabEl = document.createElement('div');
     fabEl.className = 'notesticky-fab-container' + (currentSettings.fabMinimized ? ' minimized' : '');
-    fabEl.style.display = currentSettings.showFloatingButton ? 'flex' : 'none';
+    const shouldShow = currentSettings.showFloatingButton !== false;
+    fabEl.classList.toggle('is-hidden', !shouldShow);
+    fabEl.style.display = shouldShow ? 'flex' : 'none';
     fabEl.setAttribute('role', 'toolbar');
     fabEl.setAttribute('aria-label', 'NoteSticky toolbar');
 
@@ -426,9 +425,29 @@
     updateFabButtonState();
   }
 
+  // Synchronize Floating Action Button (FAB) visibility with current settings
+  function updateFabVisibility() {
+    if (!fabEl) return;
+    const shouldShow = currentSettings.showFloatingButton !== false;
+    fabEl.classList.toggle('is-hidden', !shouldShow);
+    fabEl.style.display = shouldShow ? 'flex' : 'none';
+    if (!shouldShow) {
+      const popover = fabEl.querySelector('#fab-notes-popover');
+      if (popover) popover.classList.remove('open');
+    } else {
+      toggleFabMinimize(!!currentSettings.fabMinimized, false);
+    }
+  }
+
   function toggleFabMinimize(minimized, save = true) {
     currentSettings.fabMinimized = !!minimized;
     if (fabEl) {
+      // If floating toolbar is disabled in settings, ensure it remains hidden
+      if (currentSettings.showFloatingButton === false) {
+        fabEl.classList.add('is-hidden');
+        fabEl.style.display = 'none';
+        return;
+      }
       fabEl.classList.toggle('minimized', !!minimized);
       const content = fabEl.querySelector('.fab-content');
       const miniBtn = fabEl.querySelector('#fab-mini-btn');
@@ -1660,6 +1679,18 @@
     if (request.action === 'TOGGLE_VISIBILITY') {
       toggleVisibility();
       sendResponse({ success: true, visible: currentSettings.notesVisible });
+      return true;
+    }
+
+    if (request.action === 'UPDATE_SETTINGS' || request.action === 'SETTINGS_CHANGED') {
+      if (request.settings) {
+        currentSettings = { ...currentSettings, ...request.settings };
+      }
+      updateFabVisibility();
+      if (canvasEl) {
+        canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
+      }
+      sendResponse({ success: true });
       return true;
     }
 

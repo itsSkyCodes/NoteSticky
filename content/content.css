@@ -124,6 +124,10 @@ input:focus-visible,
   display: none;
 }
 
+.notesticky-fab-container.is-hidden {
+  display: none !important;
+}
+
 .fab-btn {
   display: inline-flex;
   align-items: center;
