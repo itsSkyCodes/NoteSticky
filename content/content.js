@@ -61,7 +61,37 @@
 
     host = document.createElement('div');
     host.id = 'notesticky-root';
-    (document.body || document.documentElement).appendChild(host);
+
+    // Apply strict inline reset styles to host element to prevent any layout interference
+    host.style.cssText = [
+      'position: absolute !important',
+      'top: 0px !important',
+      'left: 0px !important',
+      'width: 0px !important',
+      'height: 0px !important',
+      'margin: 0px !important',
+      'padding: 0px !important',
+      'border: none !important',
+      'outline: none !important',
+      'background: transparent !important',
+      'overflow: visible !important',
+      'pointer-events: none !important',
+      'z-index: 2147483647 !important',
+      'display: block !important',
+      'visibility: visible !important',
+      'opacity: 1 !important',
+      'box-shadow: none !important',
+      'transform: none !important',
+      'contain: none !important',
+      'float: none !important',
+      'clear: none !important',
+      'line-height: normal !important'
+    ].join('; ');
+
+    // Prefer document.documentElement (<html>) so the host element never participates in
+    // body flex/grid/column layouts or conflicts with body-level child selectors
+    const targetParent = document.documentElement || document.body;
+    targetParent.appendChild(host);
 
     try {
       shadowRoot = host.attachShadow({ mode: 'open' });
@@ -73,6 +103,40 @@
       console.warn('NoteSticky: attachShadow failed', e);
       return;
     }
+
+    // Critical reset / positioning styles inside Shadow DOM to eliminate any FOUC before link loads
+    const criticalStyle = document.createElement('style');
+    criticalStyle.textContent = `
+      :host {
+        all: initial !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        outline: none !important;
+        background: transparent !important;
+        overflow: visible !important;
+        pointer-events: none !important;
+        z-index: 2147483647 !important;
+        display: block !important;
+        box-sizing: border-box !important;
+      }
+      .notesticky-canvas {
+        position: absolute !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 0 !important;
+        height: 0 !important;
+        overflow: visible !important;
+        pointer-events: none !important;
+        z-index: 2147483640 !important;
+      }
+    `;
+    shadowRoot.appendChild(criticalStyle);
 
     // Link the external CSS
     const link = document.createElement('link');
@@ -144,7 +208,11 @@
       }
 
       if (handled) {
-        e.stopPropagation();
+        const path = e.composedPath ? e.composedPath() : [];
+        const isEventInside = path.some(node => node === host || node === shadowRoot);
+        if (isEventInside) {
+          e.stopPropagation();
+        }
       }
     });
 
@@ -1323,9 +1391,21 @@
       let newX = origLeft + dx;
       let newY = origTop + dy;
 
-      // Keep within bounds
-      newX = Math.max(10, newX);
-      newY = Math.max(10, newY);
+      const noteWidth = noteEl.offsetWidth || 250;
+      const current = notesData.find(n => n.id === id);
+      const isFixed = current && current.pinned;
+
+      // Keep within bounds to prevent horizontal scrollbar or disappearing off screen
+      const docWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const maxX = Math.max(10, docWidth - noteWidth - 10);
+      newX = Math.max(10, Math.min(newX, maxX));
+
+      if (isFixed) {
+        const maxY = Math.max(10, window.innerHeight - 50);
+        newY = Math.max(10, Math.min(newY, maxY));
+      } else {
+        newY = Math.max(10, newY);
+      }
 
       noteEl.style.left = `${newX}px`;
       noteEl.style.top = `${newY}px`;
@@ -1375,7 +1455,11 @@
       const dx = e.clientX - startX;
       const dy = e.clientY - startY;
 
-      const newWidth = Math.max(200, origWidth + dx);
+      const currentLeft = parseFloat(noteEl.style.left) || 0;
+      const docWidth = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+      const maxAllowedWidth = Math.max(200, docWidth - currentLeft - 10);
+
+      const newWidth = Math.min(maxAllowedWidth, Math.max(200, origWidth + dx));
       const newHeight = Math.max(160, origHeight + dy);
 
       noteEl.style.width = `${newWidth}px`;

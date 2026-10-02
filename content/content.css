@@ -1,12 +1,26 @@
 /* NoteSticky - Shadow DOM Encapsulated Styles */
 
 :host {
-  all: initial;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  color: #1e293b;
-  box-sizing: border-box;
+  all: initial !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  outline: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+  display: block !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  color: #1e293b !important;
+  box-sizing: border-box !important;
 }
 
 *, *::before, *::after {
@@ -63,13 +77,14 @@ input:focus-visible,
 
 /* Container */
 .notesticky-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 2147483640;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: visible !important;
+  pointer-events: none !important;
+  z-index: 2147483640 !important;
 }
 
 /* Floating Action Trigger Bar */
@@ -163,6 +178,7 @@ input:focus-visible,
   position: absolute;
   min-width: 200px;
   min-height: 160px;
+  max-width: calc(100vw - 20px);
   border-radius: 12px;
   display: flex;
   flex-direction: column;
@@ -757,6 +773,26 @@ input:focus-visible,
   background: #e2e8f0;
 }
 
+/* Responsive Screen Layouts */
+@media (max-width: 480px) {
+  .notesticky-fab-container {
+    bottom: 16px;
+    right: 16px;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+  .fab-btn-primary {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .fab-separator {
+    height: 14px;
+  }
+  .sticky-note {
+    min-width: 180px;
+  }
+}
+
 /* Accessibility - Reduced Motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -766,3 +802,4 @@ input:focus-visible,
     scroll-behavior: auto !important;
   }
 }
+
