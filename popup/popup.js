@@ -224,12 +224,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     attachCardListeners();
   }
 
+  // Helper to determine if a note has any non-empty content
+  function noteHasContent(note) {
+    if (!note) return false;
+    if (note.isChecklist) {
+      return Array.isArray(note.checklistItems) &&
+        note.checklistItems.some(item => item && item.text && item.text.trim().length > 0);
+    }
+    return Boolean(note.text && note.text.trim().length > 0);
+  }
+
+  // Update disabled state & tooltip of a card's copy button dynamically
+  function updateCardCopyButton(card, note) {
+    if (!card || !note) return;
+    const copyBtn = card.querySelector('.btn-card-copy');
+    if (!copyBtn) return;
+
+    let hasText = false;
+    if (editingNoteId === note.id) {
+      if (note.isChecklist) {
+        const inputs = card.querySelectorAll('.checklist-edit-text');
+        hasText = Array.from(inputs).some(input => input.value && input.value.trim().length > 0);
+      } else {
+        const textarea = card.querySelector('.note-card-edit-textarea');
+        hasText = Boolean(textarea && textarea.value && textarea.value.trim().length > 0);
+      }
+    } else {
+      hasText = noteHasContent(note);
+    }
+
+    copyBtn.disabled = !hasText;
+    copyBtn.title = hasText ? 'Copy Content' : 'No content to copy';
+    copyBtn.setAttribute('aria-label', hasText ? 'Copy Content' : 'No content to copy');
+  }
+
   // Create Card HTML
   function createCardHtml(note) {
     const noteDomain = (note.domain || extractDomain(note.url) || '').toLowerCase();
     const isThisDomain = Boolean(currentDomain && noteDomain === currentDomain);
     const timeAgo = formatTimeAgo(note.updatedAt || note.createdAt);
     const isEditing = editingNoteId === note.id;
+    const hasContent = noteHasContent(note);
 
     let contentHtml = '';
     if (isEditing) {
@@ -304,11 +339,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           </div>
           <div class="note-card-actions">
             <button class="card-btn btn-card-edit ${isEditing ? 'active' : ''}" title="${isEditing ? 'Close editor' : 'Edit note'}" aria-label="Edit note content">✏️</button>
-            <button class="card-btn btn-card-vis" title="${note.hidden ? 'Show note on page' : 'Hide note on page'}">
+            <button class="card-btn btn-card-vis" title="${note.hidden ? 'Show note on page' : 'Hide note on page'}" aria-label="${note.hidden ? 'Show note on page' : 'Hide note on page'}">
               ${note.hidden ? '🙈' : '👁️'}
             </button>
             <button class="card-btn btn-card-color" title="Change Color">🎨</button>
-            <button class="card-btn btn-card-copy" title="Copy Content">📋</button>
+            <button class="card-btn btn-card-copy" ${!hasContent ? 'disabled' : ''} title="${!hasContent ? 'No content to copy' : 'Copy Content'}" aria-label="${!hasContent ? 'No content to copy' : 'Copy Content'}">📋</button>
             <button class="card-btn btn-card-delete" title="Delete Note">✕</button>
           </div>
         </div>
@@ -343,6 +378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const id = card.dataset.noteId;
       const note = allNotes.find(n => n.id === id);
       if (!note) return;
+      const isEditing = editingNoteId === id;
 
       // Edit Note button
       const editBtn = card.querySelector('.btn-card-edit');
@@ -385,8 +421,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (cancelBtn) {
         cancelBtn.addEventListener('click', (e) => {
           e.stopPropagation();
+          if (!note.text && (!note.checklistItems || note.checklistItems.length === 0)) {
+            const idx = allNotes.findIndex(n => n.id === id);
+            if (idx !== -1) allNotes.splice(idx, 1);
+          }
           editingNoteId = null;
-          render();
+          saveAndRender();
         });
       }
 
@@ -399,8 +439,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             saveCardEdit(id, card);
           } else if (e.key === 'Escape') {
             e.preventDefault();
+            if (!note.text && (!note.checklistItems || note.checklistItems.length === 0)) {
+              const idx = allNotes.findIndex(n => n.id === id);
+              if (idx !== -1) allNotes.splice(idx, 1);
+            }
             editingNoteId = null;
-            render();
+            saveAndRender();
           }
         });
       }
@@ -422,6 +466,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.querySelector('.checklist-edit-del-btn').addEventListener('click', (ev) => {
               ev.stopPropagation();
               row.remove();
+              updateCardCopyButton(card, note);
             });
             row.querySelector('.checklist-edit-text').addEventListener('keydown', (ev) => {
               if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
@@ -445,7 +490,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.addEventListener('click', (e) => {
           e.stopPropagation();
           const row = btn.closest('.checklist-edit-row');
-          if (row) row.remove();
+          if (row) {
+            row.remove();
+            updateCardCopyButton(card, note);
+          }
         });
       });
 
@@ -463,8 +511,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       });
 
+      // Listen for text input while editing to dynamically update Copy button state
+      if (isEditing) {
+        card.addEventListener('input', () => {
+          updateCardCopyButton(card, note);
+        });
+      }
+
       // Toggle note visibility on page
-      card.querySelector('.btn-card-vis').addEventListener('click', () => {
+      card.querySelector('.btn-card-vis').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isFloatingToolbarEnabled = currentSettings.showFloatingButton !== false;
+        if (!isFloatingToolbarEnabled && note.hidden) {
+          showToast('Please enable the "On-Page Floating Toolbar" feature first to use this functionality.', 3200);
+          return;
+        }
         note.hidden = !note.hidden;
         note.updatedAt = Date.now();
         saveAndRender();
@@ -477,17 +538,49 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       // Copy content
-      card.querySelector('.btn-card-copy').addEventListener('click', () => {
-        let textToCopy = '';
-        if (note.isChecklist) {
-          textToCopy = (note.checklistItems || []).map(i => `${i.done ? '[x]' : '[ ]'} ${i.text}`).join('\n');
-        } else {
-          textToCopy = note.text || '';
-        }
-        navigator.clipboard.writeText(textToCopy).then(() => {
-          showToast('Copied to clipboard!');
+      const copyBtn = card.querySelector('.btn-card-copy');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (copyBtn.disabled) return;
+
+          let textToCopy = '';
+          if (editingNoteId === note.id) {
+            if (note.isChecklist) {
+              const rows = card.querySelectorAll('.checklist-edit-row');
+              textToCopy = Array.from(rows).map(row => {
+                const cb = row.querySelector('.checklist-edit-checkbox');
+                const txt = row.querySelector('.checklist-edit-text');
+                const val = txt ? txt.value.trim() : '';
+                return val ? `${cb && cb.checked ? '[x]' : '[ ]'} ${val}` : '';
+              }).filter(Boolean).join('\n');
+            } else {
+              const textarea = card.querySelector('.note-card-edit-textarea');
+              textToCopy = textarea ? textarea.value.trim() : '';
+            }
+          } else {
+            if (note.isChecklist) {
+              textToCopy = (note.checklistItems || [])
+                .filter(i => i && i.text && i.text.trim())
+                .map(i => `${i.done ? '[x]' : '[ ]'} ${i.text.trim()}`)
+                .join('\n');
+            } else {
+              textToCopy = (note.text || '').trim();
+            }
+          }
+
+          if (!textToCopy) {
+            updateCardCopyButton(card, note);
+            return;
+          }
+
+          navigator.clipboard.writeText(textToCopy).then(() => {
+            showToast('Copied to clipboard!');
+          }).catch(() => {
+            showToast('Failed to copy to clipboard.');
+          });
         });
-      });
+      }
 
       // Palette toggle and selection
       const colorBtn = card.querySelector('.btn-card-color');
@@ -561,6 +654,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
       const card = notesGrid.querySelector(`[data-note-id="${id}"]`);
       if (!card) return;
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       const textarea = card.querySelector('.note-card-edit-textarea');
       if (textarea) {
         textarea.focus();
@@ -569,7 +663,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const firstInput = card.querySelector('.checklist-edit-text');
         if (firstInput) firstInput.focus();
       }
-    }, 50);
+    }, 60);
   }
 
   // Close open card color palettes on click outside
@@ -628,7 +722,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         action: 'UPDATE_BADGE',
         tabId: currentTab ? currentTab.id : undefined,
         url: currentUrl
-      }).catch(() => {});
+      }).catch(() => { });
     });
   }
 
@@ -712,6 +806,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Header visibility toggle
   if (btnHeaderVisibility) {
     btnHeaderVisibility.addEventListener('click', () => {
+      const isFloatingToolbarEnabled = currentSettings.showFloatingButton !== false;
+      if (!isFloatingToolbarEnabled && !currentSettings.notesVisible) {
+        showToast('Please enable the "On-Page Floating Toolbar" feature first to use this functionality.', 3200);
+        return;
+      }
       if (!currentTab || !currentTab.id) return;
       chrome.tabs.sendMessage(currentTab.id, { action: 'TOGGLE_VISIBILITY' }, (res) => {
         if (chrome.runtime.lastError || !res) {
@@ -861,7 +960,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         chrome.tabs.sendMessage(currentTab.id, {
           action: 'UPDATE_SETTINGS',
           settings: currentSettings
-        }).catch(() => {});
+        }).catch(() => { });
       }
     });
   });
@@ -988,13 +1087,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   let popupToastTimeout = null;
-  function showToast(message) {
+  function showToast(message, duration = 2400) {
     if (popupToastTimeout) clearTimeout(popupToastTimeout);
     popupToast.textContent = message;
     popupToast.style.display = 'flex';
     popupToastTimeout = setTimeout(() => {
       popupToast.style.display = 'none';
-    }, 2400);
+    }, duration);
   }
 
   function showUndoToast(message, onUndo) {
