@@ -1,7 +1,7 @@
 # Privacy Policy for NoteSticky
 
 **Effective Date:** October 1, 2026  
-**Last Updated:** October 1, 2026  
+**Last Updated:** October 2, 2026  
 
 **NoteSticky** ("we", "our", or "the extension") is committed to protecting your privacy. This Privacy Policy explains how NoteSticky handles user data.
 
