@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "NoteSticky - Webpage & Dashboard Sticky Notes",
+  "name": "Sticky Notes - NoteSticky Webpage Notes",
   "version": "1.1.0",
-  "description": "Create, pin, and organize colorful sticky notes on any webpage with quick search, checklists, and local persistence.",
+  "description": "Create, pin, and organize colorful sticky notes & checklists on any webpage. Floating notes with quick search & local backup.",
   "permissions": [
     "storage",
     "activeTab",

@@ -1006,6 +1006,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (visBadge) visBadge.textContent = 'MacCtrl+Shift+H (⌃⇧H)';
   }
 
+  // Rate on Chrome Web Store button
+  const btnRateStore = document.getElementById('btn-rate-store');
+  if (btnRateStore) {
+    btnRateStore.addEventListener('click', () => {
+      const extId = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id)
+        ? chrome.runtime.id
+        : '';
+      const url = extId
+        ? `https://chromewebstore.google.com/detail/${extId}/reviews`
+        : 'https://chromewebstore.google.com/category/extensions';
+      chrome.tabs.create({ url });
+    });
+  }
+
   // Clear notes on current domain
   btnClearPageNotes.addEventListener('click', () => {
     if (!currentDomain) {

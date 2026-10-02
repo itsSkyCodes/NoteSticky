@@ -1,6 +1,11 @@
-# 📌 NoteSticky - Webpage & Dashboard Sticky Notes (Chrome Extension)
+# 📌 Sticky Notes - NoteSticky Webpage Notes (Chrome Extension)
 
 A powerful, aesthetic, modern **Google Chrome Extension (Manifest V3)** that allows you to pin, drag, and organize vibrant sticky notes directly onto any webpage, complete with an interactive dashboard, checklist mode, real-time search, and local persistence.
+
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Available-blue?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-success)](manifest.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Zero Telemetry](https://img.shields.io/badge/Privacy-100%25_Local-brightgreen)](PRIVACY_POLICY.md)
 
 ---
 
@@ -85,6 +90,9 @@ NoteSticky/
 ├── manifest.json            # Chrome Extension Manifest V3 configuration
 ├── demo.html                # Interactive test and demonstration webpage
 ├── README.md                # Documentation and guide
+├── STORE_LISTING.md         # Chrome Web Store Optimization (CSO) metadata & guide
+├── PRIVACY_POLICY.md        # Privacy declaration for Chrome Web Store compliance
+├── store-assets/            # Pre-rendered 1280x800 screenshots, promo tiles (marquee & small)
 ├── icons/
 │   ├── icon16.png           # 16x16 extension icon
 │   ├── icon48.png           # 48x48 extension icon
