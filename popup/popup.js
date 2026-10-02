@@ -886,6 +886,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Settings modal functions with accessibility and focus trapping
   function openSettingsModal() {
     settingsModal.style.display = 'flex';
+    const modalBody = settingsModal.querySelector('.modal-body');
+    if (modalBody) {
+      modalBody.scrollTop = 0;
+    }
     modalCloseBtn.focus();
   }
 

@@ -126,9 +126,13 @@
     <div id="settings-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true"
       aria-labelledby="modal-title">
       <div class="modal-content">
+        <div class="modal-drag-handle" aria-hidden="true"></div>
         <div class="modal-header">
-          <h3 id="modal-title">Sticky Notes Preferences</h3>
-          <button id="modal-close-btn" class="modal-close" aria-label="Close preferences">✕</button>
+          <div class="modal-title-wrap">
+            <span class="modal-title-icon">⚙️</span>
+            <h3 id="modal-title">Settings & Preferences</h3>
+          </div>
+          <button id="modal-close-btn" class="modal-close" aria-label="Close preferences" title="Close preferences (Esc)">✕</button>
         </div>
         <div class="modal-body">
           <div class="setting-item">

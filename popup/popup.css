@@ -934,20 +934,26 @@ kbd {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(4px);
   z-index: 100;
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 
 .modal-content {
   background: var(--bg-primary);
   width: 100%;
-  border-radius: 16px 16px 0 0;
-  padding: 16px;
-  box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.15);
-  animation: slide-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 100%;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slide-up 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slide-up {
@@ -960,31 +966,92 @@ kbd {
   }
 }
 
+.modal-drag-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border-color);
+  border-radius: 999px;
+  margin: 8px auto 4px;
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 14px;
+  padding: 6px 18px 12px 18px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+  background: var(--bg-primary);
+}
+
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-title-icon {
+  font-size: 16px;
 }
 
 .modal-header h3 {
   font-size: 15px;
   font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
 }
 
 .modal-close {
-  background: none;
-  border: none;
-  font-size: 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.modal-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transform: scale(1.05);
 }
 
 .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px 18px 24px 18px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overscroll-behavior: contain;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 999px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .setting-item {
@@ -1042,6 +1109,14 @@ kbd {
 .danger-row {
   display: flex;
   gap: 8px;
+}
+
+.danger-row button {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+  font-size: 11.5px;
+  padding: 6px 8px;
 }
 
 /* Toast */
