@@ -1037,8 +1037,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       showToast('No notes to export.');
       return;
     }
+    const manifestVersion = (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest)
+      ? chrome.runtime.getManifest().version
+      : '1.1.0';
     const exportData = {
-      version: '1.0.0',
+      version: manifestVersion || '1.1.0',
       exportedAt: new Date().toISOString(),
       notes: allNotes,
       settings: currentSettings

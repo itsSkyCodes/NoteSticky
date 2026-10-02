@@ -42,8 +42,9 @@ A powerful, aesthetic, modern **Google Chrome Extension (Manifest V3)** that all
 - **⌨️ Shortcuts & Context Menus**:
   - Right-click anywhere on any page $\rightarrow$ **"📌 Add Sticky Note here"**.
   - Highlight any text, right click $\rightarrow$ **"📝 Create Sticky Note from selection"**.
+  - Workspace shortcut: <kbd>Alt+Shift+W</kbd> (Mac: <kbd>Ctrl+Shift+W</kbd>) to open the workspace dashboard.
   - Default keyboard shortcut: <kbd>Alt+Shift+N</kbd> (Mac: <kbd>Ctrl+Shift+N</kbd>) to create a new note.
-  - Visibility shortcut: <kbd>Alt+Shift+H</kbd> (Mac: <kbd>Ctrl+Shift+H</kbd>)to toggle all notes on/off.
+  - Visibility shortcut: <kbd>Alt+Shift+H</kbd> (Mac: <kbd>Ctrl+Shift+H</kbd>) to toggle all notes on/off.
   - Extension icon badge displays live count of notes on the current active tab.
 
 ---
@@ -115,3 +116,19 @@ NoteSticky/
 3. **Storage & State Sync**:
    - All note records are stored in `chrome.storage.local`.
    - Both the content script and popup dashboard listen to `chrome.storage.onChanged`, ensuring instantaneous, zero-latency two-way updates between what you edit on a webpage and what appears in your popup dashboard.
+
+---
+
+## 📦 Version History & Release Notes
+
+### v1.1.0 (Current Release)
+- **⌨️ Global Workspace Shortcut**: Added configurable <kbd>Alt+Shift+W</kbd> (Mac: <kbd>MacCtrl+Shift+W</kbd>) shortcut to instantly toggle the NoteSticky Workspace dashboard from any webpage.
+- **🌐 Domain-Wide Scoping**: Sticky notes are now scoped per domain, persisting notes seamlessly across query parameters, paths, and subpages on the same site.
+- **🎛️ Independent Floating Toolbar**: Notes can now be created and managed directly within the workspace dashboard even when the on-page floating toolbar is disabled in Settings.
+- **✏️ Streamlined Note Header**: Removed redundant edit icon from floating notes (directly editable on click) while retaining full inline editing on workspace dashboard cards.
+- **📋 Smart Content Copying**: Empty notes automatically disable the copy action with clear visual indication and real-time re-enabling as text is typed.
+- **👁️ Page Visibility Guard**: Clear user feedback when attempting to toggle on-page note visibility while the on-page floating UI is turned off.
+
+### v1.0.0
+- Initial release featuring on-page floating notes, Shadow DOM CSS isolation, 7 vibrant themes, interactive checklist mode, live search, and JSON export/import backup.
+
