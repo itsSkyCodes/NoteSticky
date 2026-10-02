@@ -511,6 +511,215 @@ body {
   opacity: 0.55;
 }
 
+/* Card Inline Editing Mode */
+.note-card.is-editing {
+  box-shadow: 0 0 0 2px var(--accent-amber), var(--card-hover-shadow);
+  transform: none;
+}
+
+.card-btn.btn-card-edit.active {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.card-theme-slate .card-btn.btn-card-edit.active {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.note-card-edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.note-card-edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  max-height: 220px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.85);
+  color: inherit;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.card-theme-slate .note-card-edit-textarea {
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.note-card-edit-textarea:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.card-theme-slate .note-card-edit-textarea:focus {
+  background: #0f172a;
+}
+
+.note-card-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn-edit-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f59e0b;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.btn-edit-save:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-edit-cancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  color: inherit;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.card-theme-slate .btn-edit-cancel {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-edit-cancel:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.card-theme-slate .btn-edit-cancel:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Checklist edit mode */
+.checklist-edit-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.checklist-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.checklist-edit-row input[type="checkbox"] {
+  cursor: pointer;
+  accent-color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.checklist-edit-text {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+  color: inherit;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  outline: none;
+}
+
+.card-theme-slate .checklist-edit-text {
+  background: rgba(15, 23, 42, 0.85);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+}
+
+.checklist-edit-text:focus {
+  border-color: #f59e0b;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.card-theme-slate .checklist-edit-text:focus {
+  background: #0f172a;
+}
+
+.checklist-edit-del-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 11px;
+}
+
+.checklist-edit-del-btn:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+  color: #dc2626;
+}
+
+.checklist-edit-add-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px dashed rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.card-theme-slate .checklist-edit-add-btn {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.checklist-edit-add-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  border-color: #f59e0b;
+}
+
+/* Note card content clickable preview for quick editing */
+.note-card-content.clickable,
+.checklist-preview-list.clickable {
+  cursor: pointer;
+}
+.note-card-content.clickable:hover,
+.checklist-preview-list.clickable:hover {
+  opacity: 0.85;
+}
+
 .note-card-footer {
   display: flex;
   align-items: center;

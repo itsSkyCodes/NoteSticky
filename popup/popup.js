@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeFilter = 'current-page'; // 'current-page' | 'all' | 'checklists'
   let activeColorFilter = 'all';
   let searchQuery = '';
+  let editingNoteId = null;
 
   // 1. Get current active tab
   try {
@@ -210,43 +211,81 @@ document.addEventListener('DOMContentLoaded', async () => {
   function createCardHtml(note) {
     const isThisPage = note.url && note.url.split('#')[0] === currentUrl;
     const timeAgo = formatTimeAgo(note.updatedAt || note.createdAt);
+    const isEditing = editingNoteId === note.id;
 
     let contentHtml = '';
-    if (note.isChecklist) {
-      const items = note.checklistItems || [];
-      const doneCount = items.filter(i => i.done).length;
-      const previewItems = items.slice(0, 3).map(item => `
-        <div class="checklist-preview-item ${item.done ? 'done' : ''}">
-          <span>${item.done ? '☑' : '☐'}</span>
-          <span>${escapeHtml(item.text || 'Untitled')}</span>
-        </div>
-      `).join('');
-
-      contentHtml = `
-        <div class="checklist-preview-list">
-          <div style="font-size: 11px; font-weight: 600; opacity: 0.8; margin-bottom: 2px;">
-            Progress: ${doneCount}/${items.length} completed
+    if (isEditing) {
+      if (note.isChecklist) {
+        const items = note.checklistItems || [];
+        const rowsHtml = items.map((item, idx) => `
+          <div class="checklist-edit-row" data-index="${idx}">
+            <input type="checkbox" class="checklist-edit-checkbox" ${item.done ? 'checked' : ''} aria-label="Mark done">
+            <input type="text" class="checklist-edit-text" value="${escapeHtml(item.text || '')}" placeholder="List item...">
+            <button type="button" class="checklist-edit-del-btn" title="Remove item">✕</button>
           </div>
-          ${previewItems}
-          ${items.length > 3 ? `<div style="font-size: 11px; opacity: 0.6;">+${items.length - 3} more items...</div>` : ''}
-        </div>
-      `;
+        `).join('');
+
+        contentHtml = `
+          <div class="note-card-edit-container checklist-edit-container">
+            <div class="checklist-edit-items">
+              ${rowsHtml}
+            </div>
+            <button type="button" class="checklist-edit-add-btn" aria-label="Add new item">+ Add item</button>
+            <div class="note-card-edit-actions">
+              <button type="button" class="btn-edit-save" title="Save changes (Ctrl+Enter)">✓ Save</button>
+              <button type="button" class="btn-edit-cancel" title="Cancel editing (Esc)">✕ Cancel</button>
+            </div>
+          </div>
+        `;
+      } else {
+        contentHtml = `
+          <div class="note-card-edit-container">
+            <textarea class="note-card-edit-textarea" rows="4" placeholder="Edit note content...">${escapeHtml(note.text || '')}</textarea>
+            <div class="note-card-edit-actions">
+              <button type="button" class="btn-edit-save" title="Save changes (Ctrl+Enter)">✓ Save</button>
+              <button type="button" class="btn-edit-cancel" title="Cancel editing (Esc)">✕ Cancel</button>
+            </div>
+          </div>
+        `;
+      }
     } else {
-      contentHtml = `
-        <div class="note-card-content">
-          ${escapeHtml(note.text || 'Empty note')}
-        </div>
-      `;
+      if (note.isChecklist) {
+        const items = note.checklistItems || [];
+        const doneCount = items.filter(i => i.done).length;
+        const previewItems = items.slice(0, 3).map(item => `
+          <div class="checklist-preview-item ${item.done ? 'done' : ''}">
+            <span>${item.done ? '☑' : '☐'}</span>
+            <span>${escapeHtml(item.text || 'Untitled')}</span>
+          </div>
+        `).join('');
+
+        contentHtml = `
+          <div class="checklist-preview-list clickable" title="Click to edit checklist">
+            <div style="font-size: 11px; font-weight: 600; opacity: 0.8; margin-bottom: 2px;">
+              Progress: ${doneCount}/${items.length} completed
+            </div>
+            ${previewItems}
+            ${items.length > 3 ? `<div style="font-size: 11px; opacity: 0.6;">+${items.length - 3} more items...</div>` : ''}
+          </div>
+        `;
+      } else {
+        contentHtml = `
+          <div class="note-card-content clickable" title="Click to edit note">
+            ${escapeHtml(note.text || 'Empty note')}
+          </div>
+        `;
+      }
     }
 
     return `
-      <div class="note-card card-theme-${note.color || 'yellow'}" data-note-id="${note.id}">
+      <div class="note-card card-theme-${note.color || 'yellow'} ${isEditing ? 'is-editing' : ''}" data-note-id="${note.id}">
         <div class="note-card-header">
           <div class="note-card-domain" title="${escapeHtml(note.pageTitle || note.domain || 'Note')}">
             <span>🌐</span>
             <span>${escapeHtml(note.domain || 'Webpage')}</span>
           </div>
           <div class="note-card-actions">
+            <button class="card-btn btn-card-edit ${isEditing ? 'active' : ''}" title="${isEditing ? 'Close editor' : 'Edit note'}" aria-label="Edit note content">✏️</button>
             <button class="card-btn btn-card-vis" title="${note.hidden ? 'Show note on page' : 'Hide note on page'}">
               ${note.hidden ? '🙈' : '👁️'}
             </button>
@@ -286,6 +325,125 @@ document.addEventListener('DOMContentLoaded', async () => {
       const id = card.dataset.noteId;
       const note = allNotes.find(n => n.id === id);
       if (!note) return;
+
+      // Edit Note button
+      const editBtn = card.querySelector('.btn-card-edit');
+      if (editBtn) {
+        editBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (editingNoteId === id) {
+            editingNoteId = null;
+            render();
+          } else {
+            editingNoteId = id;
+            render();
+            focusCardEditor(id);
+          }
+        });
+      }
+
+      // Clicking on non-editing content enters edit mode
+      const clickableContent = card.querySelector('.note-card-content.clickable, .checklist-preview-list.clickable');
+      if (clickableContent) {
+        clickableContent.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editingNoteId = id;
+          render();
+          focusCardEditor(id);
+        });
+      }
+
+      // Save edit button
+      const saveBtn = card.querySelector('.btn-edit-save');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          saveCardEdit(id, card);
+        });
+      }
+
+      // Cancel edit button
+      const cancelBtn = card.querySelector('.btn-edit-cancel');
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          editingNoteId = null;
+          render();
+        });
+      }
+
+      // Textarea keyboard shortcuts: Ctrl/Cmd+Enter to save, Esc to cancel
+      const textarea = card.querySelector('.note-card-edit-textarea');
+      if (textarea) {
+        textarea.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            saveCardEdit(id, card);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            editingNoteId = null;
+            render();
+          }
+        });
+      }
+
+      // Checklist add item button
+      const addRowBtn = card.querySelector('.checklist-edit-add-btn');
+      if (addRowBtn) {
+        addRowBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const itemsContainer = card.querySelector('.checklist-edit-items');
+          if (itemsContainer) {
+            const row = document.createElement('div');
+            row.className = 'checklist-edit-row';
+            row.innerHTML = `
+              <input type="checkbox" class="checklist-edit-checkbox" aria-label="Mark done">
+              <input type="text" class="checklist-edit-text" value="" placeholder="New item...">
+              <button type="button" class="checklist-edit-del-btn" title="Remove item">✕</button>
+            `;
+            row.querySelector('.checklist-edit-del-btn').addEventListener('click', (ev) => {
+              ev.stopPropagation();
+              row.remove();
+            });
+            row.querySelector('.checklist-edit-text').addEventListener('keydown', (ev) => {
+              if ((ev.ctrlKey || ev.metaKey) && ev.key === 'Enter') {
+                ev.preventDefault();
+                saveCardEdit(id, card);
+              } else if (ev.key === 'Escape') {
+                ev.preventDefault();
+                editingNoteId = null;
+                render();
+              }
+            });
+            itemsContainer.appendChild(row);
+            const input = row.querySelector('.checklist-edit-text');
+            if (input) input.focus();
+          }
+        });
+      }
+
+      // Checklist delete buttons
+      card.querySelectorAll('.checklist-edit-del-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const row = btn.closest('.checklist-edit-row');
+          if (row) row.remove();
+        });
+      });
+
+      // Checklist inputs keyboard shortcuts
+      card.querySelectorAll('.checklist-edit-text').forEach(input => {
+        input.addEventListener('keydown', (e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            saveCardEdit(id, card);
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            editingNoteId = null;
+            render();
+          }
+        });
+      });
 
       // Toggle note visibility on page
       card.querySelector('.btn-card-vis').addEventListener('click', () => {
@@ -343,6 +501,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         deleteNoteWithUndo(id);
       });
     });
+  }
+
+  // Save Card Content Update in Workspace
+  function saveCardEdit(id, card) {
+    const note = allNotes.find(n => n.id === id);
+    if (!note) return;
+
+    if (note.isChecklist) {
+      const rows = card.querySelectorAll('.checklist-edit-row');
+      const newItems = [];
+      rows.forEach((row, idx) => {
+        const textInput = row.querySelector('.checklist-edit-text');
+        const checkbox = row.querySelector('.checklist-edit-checkbox');
+        const textVal = textInput ? textInput.value.trim() : '';
+        if (textVal) {
+          const oldItem = (note.checklistItems && note.checklistItems[idx]) || {};
+          newItems.push({
+            id: oldItem.id || ('item_' + Date.now() + '_' + idx),
+            text: textVal,
+            done: checkbox ? checkbox.checked : false
+          });
+        }
+      });
+      note.checklistItems = newItems;
+      note.text = newItems.length > 0 ? newItems.map(i => i.text).join('\n') : '';
+    } else {
+      const textarea = card.querySelector('.note-card-edit-textarea');
+      if (textarea) {
+        note.text = textarea.value;
+      }
+    }
+
+    note.updatedAt = Date.now();
+    editingNoteId = null;
+    saveAndRender();
+    showToast('Note updated!');
+  }
+
+  function focusCardEditor(id) {
+    setTimeout(() => {
+      const card = notesGrid.querySelector(`[data-note-id="${id}"]`);
+      if (!card) return;
+      const textarea = card.querySelector('.note-card-edit-textarea');
+      if (textarea) {
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = textarea.value.length;
+      } else {
+        const firstInput = card.querySelector('.checklist-edit-text');
+        if (firstInput) firstInput.focus();
+      }
+    }, 50);
   }
 
   // Close open card color palettes on click outside
