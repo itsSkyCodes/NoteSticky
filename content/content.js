@@ -736,8 +736,17 @@
       }
       hiddenNotesStack = hiddenNotesStack.filter(x => x !== id);
       lastActiveNoteId = id;
+
+      // When unhiding an individual note, ensure the parent canvas is visible
+      if (canvasEl && canvasEl.style.display === 'none') {
+        canvasEl.style.display = 'block';
+        currentSettings.notesVisible = true;
+      }
+
       if (el) {
         bringToFront(el, id, false);
+      } else {
+        renderCurrentPageNotes();
       }
     }
 
@@ -1173,15 +1182,16 @@
 
     // Independent Hide on this specific note
     if (toggleVisBtn) {
-      const handleHideClick = (e) => {
-        e.preventDefault();
+      toggleVisBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         setNoteHidden(id, true);
-      };
-
-      toggleVisBtn.addEventListener('click', handleHideClick);
-      toggleVisBtn.addEventListener('pointerdown', (e) => {
-        e.stopPropagation();
+      });
+      toggleVisBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          e.stopPropagation();
+          setNoteHidden(id, true);
+        }
       });
     }
 
@@ -1745,6 +1755,30 @@
     if (request.action === 'TOGGLE_VISIBILITY') {
       toggleVisibility();
       sendResponse({ success: true, visible: currentSettings.notesVisible });
+      return true;
+    }
+
+    if (request.action === 'SET_NOTE_VISIBILITY') {
+      const { noteId, hidden, notesVisible } = request;
+      if (typeof notesVisible === 'boolean') {
+        currentSettings.notesVisible = notesVisible;
+        if (canvasEl) {
+          canvasEl.style.display = notesVisible ? 'block' : 'none';
+        }
+      }
+      setNoteHidden(noteId, hidden);
+      sendResponse({ success: true });
+      return true;
+    }
+
+    if (request.action === 'NOTES_UPDATED') {
+      if (Array.isArray(request.notes)) {
+        notesData = request.notes;
+        renderCurrentPageNotes();
+        updateFabBadge();
+        updateFabButtonState();
+      }
+      sendResponse({ success: true });
       return true;
     }
 

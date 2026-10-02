@@ -528,7 +528,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         note.hidden = !note.hidden;
         note.updatedAt = Date.now();
+
+        // If unhiding an individual note, ensure global notesVisible is enabled
+        if (!note.hidden) {
+          currentSettings.notesVisible = true;
+          chrome.storage.local.set({ settings: currentSettings });
+          updateHeaderVisIcon(true);
+        }
+
         saveAndRender();
+
+        // Send direct message to the active tab for instant response
+        if (currentTab && currentTab.id) {
+          chrome.tabs.sendMessage(currentTab.id, {
+            action: 'SET_NOTE_VISIBILITY',
+            noteId: note.id,
+            hidden: note.hidden,
+            notesVisible: currentSettings.notesVisible
+          }).catch(() => { });
+        }
+
         showToast(note.hidden ? 'Note hidden on page' : 'Note shown on page');
       });
 
@@ -723,6 +742,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         tabId: currentTab ? currentTab.id : undefined,
         url: currentUrl
       }).catch(() => { });
+      if (currentTab && currentTab.id) {
+        chrome.tabs.sendMessage(currentTab.id, {
+          action: 'NOTES_UPDATED',
+          notes: allNotes
+        }).catch(() => { });
+      }
     });
   }
 
