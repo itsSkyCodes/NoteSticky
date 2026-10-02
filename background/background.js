@@ -66,24 +66,31 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
       text: info.selectionText || "",
       x: null,
       y: null
-    }).catch(() => {});
+    }).catch(() => { });
   } else if (info.menuItemId === "toggle-page-notes") {
     chrome.tabs.sendMessage(tab.id, {
       action: "TOGGLE_VISIBILITY"
-    }).catch(() => {});
+    }).catch(() => { });
   }
 });
 
 // Handle keyboard shortcuts defined in manifest commands
 chrome.commands.onCommand.addListener((command) => {
+  if (command === "_execute_action" || command === "open-workspace") {
+    if (chrome.action && typeof chrome.action.openPopup === 'function') {
+      chrome.action.openPopup().catch(() => { });
+    }
+    return;
+  }
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0] || !tabs[0].id) return;
     const tabId = tabs[0].id;
 
     if (command === "new-sticky-note") {
-      chrome.tabs.sendMessage(tabId, { action: "CREATE_NOTE" }).catch(() => {});
+      chrome.tabs.sendMessage(tabId, { action: "CREATE_NOTE" }).catch(() => { });
     } else if (command === "toggle-notes-visibility") {
-      chrome.tabs.sendMessage(tabId, { action: "TOGGLE_VISIBILITY" }).catch(() => {});
+      chrome.tabs.sendMessage(tabId, { action: "TOGGLE_VISIBILITY" }).catch(() => { });
     }
   });
 });
@@ -106,7 +113,7 @@ function updateBadgeForTab(tabId, url) {
   if (!tabId || !url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('chrome-extension://')) {
     try {
       chrome.action.setBadgeText({ tabId, text: '' });
-    } catch (_) {}
+    } catch (_) { }
     return;
   }
 
@@ -117,7 +124,7 @@ function updateBadgeForTab(tabId, url) {
     if (!targetDomain) {
       try {
         chrome.action.setBadgeText({ tabId, text: '' });
-      } catch (_) {}
+      } catch (_) { }
       return;
     }
 
@@ -174,6 +181,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 
+  if (request.action === "OPEN_WORKSPACE") {
+    if (chrome.action && typeof chrome.action.openPopup === 'function') {
+      chrome.action.openPopup()
+        .then(() => sendResponse({ success: true }))
+        .catch((err) => sendResponse({ success: false, error: err ? err.message : 'Error' }));
+      return true;
+    }
+    sendResponse({ success: false, error: 'openPopup not supported' });
+    return true;
+  }
+
   if (request.action === "FOCUS_NOTE") {
     // Navigate or switch to the tab containing the note, and tell it to highlight
     const { noteId, url, domain } = request;
@@ -189,7 +207,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.tabs.update(existingTab.id, { active: true }, () => {
           chrome.windows.update(existingTab.windowId, { focused: true });
           setTimeout(() => {
-            chrome.tabs.sendMessage(existingTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => {});
+            chrome.tabs.sendMessage(existingTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => { });
           }, 300);
         });
       } else {
@@ -201,7 +219,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               if (tabId === newTab.id && info.status === 'complete') {
                 chrome.tabs.onUpdated.removeListener(listener);
                 setTimeout(() => {
-                  chrome.tabs.sendMessage(newTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => {});
+                  chrome.tabs.sendMessage(newTab.id, { action: "HIGHLIGHT_NOTE", noteId }).catch(() => { });
                 }, 600);
               }
             };

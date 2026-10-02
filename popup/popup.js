@@ -888,6 +888,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Configure Shortcuts button (opens Chrome keyboard shortcuts manager)
+  const btnConfigureShortcuts = document.getElementById('btn-configure-shortcuts');
+  if (btnConfigureShortcuts) {
+    btnConfigureShortcuts.addEventListener('click', () => {
+      chrome.tabs.create({ url: 'chrome://extensions/shortcuts' });
+    });
+  }
+
+  // Update shortcut badges based on user's OS platform (Mac vs Windows/Linux)
+  const isMacPlatform = (navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+  if (isMacPlatform) {
+    const wsBadge = document.getElementById('badge-shortcut-workspace');
+    if (wsBadge) wsBadge.textContent = 'MacCtrl+Shift+W (⌃⇧W)';
+    const newBadge = document.getElementById('badge-shortcut-new');
+    if (newBadge) newBadge.textContent = 'MacCtrl+Shift+N (⌃⇧N)';
+    const visBadge = document.getElementById('badge-shortcut-vis');
+    if (visBadge) visBadge.textContent = 'MacCtrl+Shift+H (⌃⇧H)';
+  }
+
   // Clear notes on current domain
   btnClearPageNotes.addEventListener('click', () => {
     if (!currentDomain) {

@@ -241,6 +241,52 @@
       }
     });
 
+    // Listen for global keyboard shortcuts on the webpage
+    document.addEventListener('keydown', (e) => {
+      // Determine if key event originated from an editable text input on the host website
+      const target = e.target;
+      const isTextInput = target && (
+        target.isContentEditable ||
+        target.tagName === 'TEXTAREA' ||
+        (target.tagName === 'INPUT' && !['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'color'].includes(target.type))
+      );
+
+      // NoteSticky modifiers: Alt+Shift (Windows/Linux/Mac) or Mac Ctrl+Shift
+      const isMac = (navigator.platform && navigator.platform.toUpperCase().indexOf('MAC') >= 0);
+      const isAltShift = (e.altKey && e.shiftKey && !e.ctrlKey && !e.metaKey);
+      const isMacCtrlShift = (isMac && e.ctrlKey && e.shiftKey && !e.metaKey && !e.altKey);
+      const isModifierActive = isAltShift || isMacCtrlShift;
+
+      if (!isModifierActive) return;
+
+      const key = (e.key || '').toUpperCase();
+
+      if (key === 'W') {
+        // Open Workspace shortcut
+        e.preventDefault();
+        chrome.runtime.sendMessage({ action: 'OPEN_WORKSPACE' }, (res) => {
+          if (chrome.runtime.lastError || !res || !res.success) {
+            // Standalone/testing fallback: if openPopup is unavailable, show the on-page notes overview popover
+            if (fabEl) {
+              toggleFabNotesPopover();
+            }
+          }
+        });
+      } else if (key === 'N') {
+        // New Note shortcut (only when not actively typing in an existing text field)
+        if (!isTextInput) {
+          e.preventDefault();
+          createNote();
+        }
+      } else if (key === 'H') {
+        // Toggle visibility shortcut
+        if (!isTextInput) {
+          e.preventDefault();
+          toggleVisibility();
+        }
+      }
+    });
+
     // Load initial data
     loadFromStorage();
   }

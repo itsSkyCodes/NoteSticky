@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoteSticky Dashboard</title>
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Header -->
@@ -18,7 +20,8 @@
         </div>
       </div>
       <div class="header-actions">
-        <button id="btn-header-visibility" class="icon-action-btn" title="Show / Hide Notes on Page (Alt+Shift+H)" aria-label="Toggle notes visibility on page">
+        <button id="btn-header-visibility" class="icon-action-btn" title="Show / Hide Notes on Page (Alt+Shift+H)"
+          aria-label="Toggle notes visibility on page">
           <span id="header-vis-icon">👁️</span>
         </button>
         <button id="theme-toggle-btn" class="icon-action-btn" title="Toggle Theme" aria-label="Toggle dark/light theme">
@@ -27,7 +30,8 @@
         <button id="settings-toggle-btn" class="icon-action-btn" title="Settings" aria-label="Open settings">
           <span>⚙️</span>
         </button>
-        <button id="btn-add-note" class="btn-primary" title="Add note to current page" aria-label="Create a new sticky note on current page">
+        <button id="btn-add-note" class="btn-primary" title="Add note to current page"
+          aria-label="Create a new sticky note on current page">
           <span class="btn-icon">➕</span>
           <span>New Note</span>
         </button>
@@ -38,7 +42,8 @@
     <div class="search-container">
       <div class="search-input-wrapper">
         <span class="search-icon" aria-hidden="true">🔍</span>
-        <input type="text" id="search-input" placeholder="Search notes, checklists, domains..." autocomplete="off" aria-label="Search notes, checklists, and domains">
+        <input type="text" id="search-input" placeholder="Search notes, checklists, domains..." autocomplete="off"
+          aria-label="Search notes, checklists, and domains">
         <button id="search-clear-btn" class="search-clear" style="display: none;" aria-label="Clear search">✕</button>
       </div>
     </div>
@@ -60,14 +65,22 @@
         </button>
       </div>
       <div class="color-filters" id="color-filter-container" role="toolbar" aria-label="Filter notes by color">
-        <button type="button" class="color-filter-dot active" data-color="all" title="All colors" aria-label="Show all colors">✦</button>
-        <button type="button" class="color-filter-dot color-yellow" data-color="yellow" title="Yellow" aria-label="Filter by Yellow"></button>
-        <button type="button" class="color-filter-dot color-mint" data-color="mint" title="Mint" aria-label="Filter by Mint"></button>
-        <button type="button" class="color-filter-dot color-coral" data-color="coral" title="Coral" aria-label="Filter by Coral"></button>
-        <button type="button" class="color-filter-dot color-lavender" data-color="lavender" title="Lavender" aria-label="Filter by Lavender"></button>
-        <button type="button" class="color-filter-dot color-sky" data-color="sky" title="Sky" aria-label="Filter by Sky"></button>
-        <button type="button" class="color-filter-dot color-peach" data-color="peach" title="Peach" aria-label="Filter by Peach"></button>
-        <button type="button" class="color-filter-dot color-slate" data-color="slate" title="Slate" aria-label="Filter by Slate"></button>
+        <button type="button" class="color-filter-dot active" data-color="all" title="All colors"
+          aria-label="Show all colors">✦</button>
+        <button type="button" class="color-filter-dot color-yellow" data-color="yellow" title="Yellow"
+          aria-label="Filter by Yellow"></button>
+        <button type="button" class="color-filter-dot color-mint" data-color="mint" title="Mint"
+          aria-label="Filter by Mint"></button>
+        <button type="button" class="color-filter-dot color-coral" data-color="coral" title="Coral"
+          aria-label="Filter by Coral"></button>
+        <button type="button" class="color-filter-dot color-lavender" data-color="lavender" title="Lavender"
+          aria-label="Filter by Lavender"></button>
+        <button type="button" class="color-filter-dot color-sky" data-color="sky" title="Sky"
+          aria-label="Filter by Sky"></button>
+        <button type="button" class="color-filter-dot color-peach" data-color="peach" title="Peach"
+          aria-label="Filter by Peach"></button>
+        <button type="button" class="color-filter-dot color-slate" data-color="slate" title="Slate"
+          aria-label="Filter by Slate"></button>
       </div>
     </div>
 
@@ -97,10 +110,12 @@
         0 notes
       </div>
       <div class="footer-buttons">
-        <button id="btn-export-json" class="footer-link-btn" title="Export notes as JSON" aria-label="Export notes as JSON">
+        <button id="btn-export-json" class="footer-link-btn" title="Export notes as JSON"
+          aria-label="Export notes as JSON">
           <span>📥 Export</span>
         </button>
-        <label for="import-json-input" class="footer-link-btn" title="Import notes from JSON" style="cursor: pointer;" tabindex="0" role="button" aria-label="Import notes from JSON">
+        <label for="import-json-input" class="footer-link-btn" title="Import notes from JSON" style="cursor: pointer;"
+          tabindex="0" role="button" aria-label="Import notes from JSON">
           <span>📤 Import</span>
         </label>
         <input type="file" id="import-json-input" accept=".json" style="display: none;">
@@ -108,7 +123,8 @@
     </footer>
 
     <!-- Settings Modal Drawer -->
-    <div id="settings-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div id="settings-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true"
+      aria-labelledby="modal-title">
       <div class="modal-content">
         <div class="modal-header">
           <h3 id="modal-title">Sticky Notes Preferences</h3>
@@ -120,7 +136,8 @@
               <label for="setting-floating-btn">On-Page Floating Toolbar</label>
               <span>Show the floating quick-action pill on webpages</span>
             </div>
-            <input type="checkbox" id="setting-floating-btn" class="toggle-switch" aria-label="Show floating toolbar on webpages">
+            <input type="checkbox" id="setting-floating-btn" class="toggle-switch"
+              aria-label="Show floating toolbar on webpages">
           </div>
 
           <div class="setting-item">
@@ -155,9 +172,40 @@
               <label>Hide/Show Notes on Current Page</label>
               <span>Temporarily toggle visibility without deleting</span>
             </div>
-            <button id="setting-toggle-page-vis" class="btn-secondary small" aria-label="Toggle notes visibility on current page">
+            <button id="setting-toggle-page-vis" class="btn-secondary small"
+              aria-label="Toggle notes visibility on current page">
               Toggle Visibility
             </button>
+          </div>
+
+          <div class="setting-divider"></div>
+
+          <div class="setting-section">
+            <div class="setting-info" style="margin-bottom: 10px;">
+              <label>Keyboard Shortcuts</label>
+              <span>Quickly trigger actions from any webpage</span>
+            </div>
+            <div class="shortcuts-card"
+              style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                <span>Open Workspace</span>
+                <kbd id="badge-shortcut-workspace">Alt+Shift+W</kbd>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                <span>New Sticky Note</span>
+                <kbd id="badge-shortcut-new">Alt+Shift+N</kbd>
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+                <span>Show / Hide Notes</span>
+                <kbd id="badge-shortcut-vis">Alt+Shift+H</kbd>
+              </div>
+            </div>
+            <div style="margin-top: 10px;">
+              <button type="button" id="btn-configure-shortcuts" class="btn-secondary small"
+                style="width: 100%; justify-content: center;" aria-label="Configure keyboard shortcuts in Chrome">
+                <span>⌨️ Configure Shortcuts in Chrome</span>
+              </button>
+            </div>
           </div>
 
           <div class="setting-divider"></div>
@@ -165,8 +213,10 @@
           <div class="setting-danger-zone">
             <h4>Danger Zone</h4>
             <div class="danger-row">
-              <button id="btn-clear-page-notes" class="btn-danger small" aria-label="Delete all notes on this domain">Delete notes on this domain</button>
-              <button id="btn-clear-all-notes" class="btn-danger small" aria-label="Clear all notes across all websites">Clear ALL notes</button>
+              <button id="btn-clear-page-notes" class="btn-danger small"
+                aria-label="Delete all notes on this domain">Delete notes on this domain</button>
+              <button id="btn-clear-all-notes" class="btn-danger small"
+                aria-label="Clear all notes across all websites">Clear ALL notes</button>
             </div>
           </div>
         </div>
@@ -179,4 +229,5 @@
 
   <script src="popup.js"></script>
 </body>
+
 </html>
