@@ -81,7 +81,7 @@
       }
       try {
         host.remove();
-      } catch (e) {}
+      } catch (e) { }
     }
 
     host = document.createElement('div');
@@ -543,7 +543,7 @@
       counter.style.display = count > 0 ? 'inline-block' : 'none';
     }
     // Notify background for extension icon badge
-    chrome.runtime.sendMessage({ action: 'UPDATE_BADGE' }).catch(() => {});
+    chrome.runtime.sendMessage({ action: 'UPDATE_BADGE' }).catch(() => { });
   }
 
   // Handle click on the Floating Quick Toolbar Hide/Show button
@@ -849,7 +849,6 @@
           </span>
         </div>
         <div class="note-header-actions" role="toolbar" aria-label="Note actions">
-          <button type="button" class="icon-btn" id="btn-edit" title="Edit Note" aria-label="Edit note content">✏️</button>
           <button type="button" class="icon-btn" id="btn-palette" title="Change Color (Right-click to quick cycle)" aria-label="Change note color">🎨</button>
           <button type="button" class="icon-btn" id="btn-checklist" title="${note.isChecklist ? 'Switch to Note' : 'Switch to Checklist'}" aria-label="${note.isChecklist ? 'Switch to plain text note' : 'Switch to checklist'}">
             ${note.isChecklist ? '📝' : '☑️'}
@@ -1019,7 +1018,6 @@
     // Header actions
     const header = noteEl.querySelector('.note-header');
     const pinBtn = noteEl.querySelector('.pin-indicator');
-    const editBtn = noteEl.querySelector('#btn-edit');
     const paletteBtn = noteEl.querySelector('#btn-palette');
     const checklistBtn = noteEl.querySelector('#btn-checklist');
     const toggleVisBtn = noteEl.querySelector('#btn-toggle-vis');
@@ -1027,47 +1025,6 @@
     const deleteBtn = noteEl.querySelector('#btn-delete');
     const palettePopover = noteEl.querySelector('.palette-popover');
     const resizeHandle = noteEl.querySelector('.resize-handle');
-
-    // Edit button click - activates and focuses the note for editing
-    if (editBtn) {
-      editBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const current = notesData.find(n => n.id === id);
-        if (current && current.minimized) {
-          current.minimized = false;
-          noteEl.classList.remove('minimized');
-          if (minimizeBtn) {
-            minimizeBtn.textContent = '🗕';
-            minimizeBtn.title = 'Minimize';
-            minimizeBtn.setAttribute('aria-label', 'Minimize note');
-          }
-          saveNotesDebounced(id);
-        }
-        bringToFront(noteEl, id);
-        const body = noteEl.querySelector('.note-body');
-        if (body) {
-          if (body.classList.contains('checklist-container')) {
-            const firstInput = body.querySelector('.checklist-item-text');
-            if (firstInput) {
-              firstInput.focus();
-            } else {
-              const addBtn = body.querySelector('.checklist-add-btn');
-              if (addBtn) addBtn.focus();
-            }
-          } else {
-            body.focus();
-            if (typeof window.getSelection !== 'undefined' && typeof document.createRange !== 'undefined') {
-              const range = document.createRange();
-              range.selectNodeContents(body);
-              range.collapse(false);
-              const sel = window.getSelection();
-              sel.removeAllRanges();
-              sel.addRange(range);
-            }
-          }
-        }
-      });
-    }
 
     // Dragging logic
     setupDragging(noteEl, header, id);
@@ -1543,7 +1500,7 @@
       if (!isDragging) return;
       isDragging = false;
       noteEl.classList.remove('dragging');
-      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) { }
 
       const current = notesData.find(n => n.id === id);
       if (current) {
@@ -1597,7 +1554,7 @@
     const stopResize = (e) => {
       if (!isResizing) return;
       isResizing = false;
-      try { handle.releasePointerCapture(e.pointerId); } catch (_) {}
+      try { handle.releasePointerCapture(e.pointerId); } catch (_) { }
 
       const current = notesData.find(n => n.id === id);
       if (current) {
@@ -1746,7 +1703,7 @@
       saveTimeouts.clear();
       try {
         chrome.storage.local.set({ notes: notesData });
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
