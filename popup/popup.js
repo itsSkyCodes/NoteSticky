@@ -632,44 +632,78 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Create New Note from Header Button
-  function createNewNoteOnCurrentPage() {
-    if (!currentTab || !currentTab.id) {
-      showToast('Could not access current tab.');
-      return;
+  // Create note directly in workspace
+  function createNoteInWorkspace(isHiddenOnPage = false) {
+    // If a search query or checklist filter is active, reset so the new note is visible
+    if (searchQuery) {
+      searchQuery = '';
+      searchInput.value = '';
+      searchClearBtn.style.display = 'none';
+    }
+    if (activeFilter === 'checklists') {
+      activeFilter = 'current-page';
+      filterTabs.querySelectorAll('.chip').forEach(c => {
+        const isActive = c.dataset.filter === 'current-page';
+        c.classList.toggle('active', isActive);
+        c.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
     }
 
-    // Try sending message to content script
-    chrome.tabs.sendMessage(currentTab.id, { action: 'CREATE_NOTE' }, (res) => {
-      if (chrome.runtime.lastError || !res) {
-        // Content script might not run on chrome:// or webstore URLs
-        // Create directly in storage
-        const fallbackNote = {
-          id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-          text: '',
-          url: currentUrl || 'https://google.com',
-          domain: currentDomain || 'Web',
-          pageTitle: (currentTab && currentTab.title) || 'Sticky Note',
-          color: currentSettings.defaultColor || 'yellow',
-          x: 100,
-          y: 100,
-          width: 250,
-          height: 220,
-          pinned: false,
-          minimized: false,
-          isChecklist: false,
-          checklistItems: [],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        };
-        allNotes.push(fallbackNote);
-        saveAndRender();
-        showToast('Created general note!');
-      } else {
-        showToast('Added sticky note to page!');
-        window.close();
+    const noteColor = activeColorFilter !== 'all' ? activeColorFilter : (currentSettings.defaultColor || 'yellow');
+    const noteId = 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+    const newNote = {
+      id: noteId,
+      text: '',
+      url: currentUrl || 'https://google.com',
+      domain: currentDomain || 'Web',
+      pageTitle: (currentTab && currentTab.title) || 'Sticky Note',
+      color: noteColor,
+      x: 100,
+      y: 100,
+      width: 250,
+      height: 220,
+      pinned: currentSettings.pinMode === 'screen',
+      minimized: false,
+      hidden: !!isHiddenOnPage,
+      isChecklist: false,
+      checklistItems: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    allNotes.unshift(newNote);
+    editingNoteId = newNote.id;
+    saveAndRender();
+    focusCardEditor(newNote.id);
+    showToast('New note created in workspace!');
+  }
+
+  // Create New Note from Header Button
+  function createNewNoteOnCurrentPage() {
+    const isFloatingToolbarEnabled = currentSettings.showFloatingButton !== false;
+
+    if (isFloatingToolbarEnabled) {
+      if (!currentTab || !currentTab.id) {
+        // Fallback to workspace creation if current tab cannot be accessed
+        createNoteInWorkspace(false);
+        return;
       }
-    });
+
+      // When floating toolbar is enabled: open note popup on current webpage as it does now
+      chrome.tabs.sendMessage(currentTab.id, { action: 'CREATE_NOTE' }, (res) => {
+        if (chrome.runtime.lastError || !res) {
+          // Content script might not run on chrome:// or webstore URLs; create in workspace without closing
+          createNoteInWorkspace(false);
+        } else {
+          showToast('Added sticky note to page!');
+          window.close();
+        }
+      });
+    } else {
+      // When floating toolbar is disabled: create directly in workspace without opening on-page popup
+      createNoteInWorkspace(true);
+    }
   }
 
   btnAddNote.addEventListener('click', createNewNoteOnCurrentPage);
