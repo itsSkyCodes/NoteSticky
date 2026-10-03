@@ -94,6 +94,7 @@ input:focus-visible,
   right: 24px;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(12px);
@@ -105,7 +106,10 @@ input:focus-visible,
   pointer-events: auto;
   z-index: 2147483647;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: right center;
   user-select: none;
+  cursor: grab;
+  touch-action: none;
 }
 
 .notesticky-fab-container:hover {
@@ -113,11 +117,29 @@ input:focus-visible,
   box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.16);
 }
 
+.notesticky-fab-container:active {
+  cursor: grabbing;
+}
+
+.notesticky-fab-container.dragging {
+  cursor: grabbing !important;
+  opacity: 0.94;
+  box-shadow: 0 20px 35px -4px rgba(0, 0, 0, 0.22), 0 10px 15px -5px rgba(0, 0, 0, 0.1) !important;
+  transform: scale(1.02) !important;
+  transition: none !important;
+}
+
+.notesticky-fab-container.dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
 .notesticky-fab-container.minimized {
   padding: 6px;
   border-radius: 50%;
-  bottom: 20px;
-  right: 20px;
+  bottom: 24px;
+  right: 24px;
+  cursor: pointer;
 }
 
 .notesticky-fab-container.minimized .fab-content {
@@ -126,6 +148,91 @@ input:focus-visible,
 
 .notesticky-fab-container.is-hidden {
   display: none !important;
+}
+
+/* Right-anchored state (when toolbar is on right side of screen) */
+.notesticky-fab-container.anchor-right {
+  justify-content: flex-end;
+  transform-origin: right center;
+}
+
+.notesticky-fab-container.anchor-right .fab-content {
+  transform-origin: right center;
+  animation: fab-expand 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notesticky-fab-container.anchor-right .fab-mini-toggle {
+  transform-origin: right center;
+  animation: fab-mini-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Left-anchored state (when toolbar is on left side of screen) */
+.notesticky-fab-container.anchor-left {
+  justify-content: flex-start;
+  transform-origin: left center;
+}
+
+.notesticky-fab-container.anchor-left .fab-content {
+  transform-origin: left center;
+  animation: fab-expand 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.notesticky-fab-container.anchor-left .fab-mini-toggle {
+  transform-origin: left center;
+  animation: fab-mini-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Flip collapse arrow horizontally to point down-left (↙) when anchored to the left */
+.notesticky-fab-container.anchor-left #fab-collapse-btn span {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
+@keyframes fab-expand {
+  from {
+    opacity: 0;
+    transform: scaleX(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fab-mini-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.fab-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: grab;
+  padding: 4px 2px;
+  margin-right: -2px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+  user-select: none;
+  touch-action: none;
+  flex-shrink: 0;
+}
+
+.fab-drag-handle:hover {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.fab-drag-handle:active,
+.notesticky-fab-container.dragging .fab-drag-handle {
+  cursor: grabbing;
 }
 
 .fab-btn {
@@ -701,6 +808,16 @@ input:focus-visible,
 
 .fab-notes-popover.open {
   display: flex !important;
+}
+
+.fab-notes-popover.popover-down {
+  bottom: auto;
+  top: calc(100% + 10px);
+}
+
+.fab-notes-popover.popover-align-left {
+  right: auto;
+  left: 0;
 }
 
 @keyframes popover-in {

@@ -225,6 +225,7 @@
     if (!window.chrome || !window.chrome.storage) {
       window.chrome = {
         runtime: {
+          id: 'demo-polyfilled-id',
           getURL: function (path) { return path; },
           onMessage: { addListener: function () { } },
           sendMessage: function () { return Promise.resolve({ success: true }); }

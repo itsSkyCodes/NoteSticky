@@ -21,7 +21,8 @@
     defaultColor: 'yellow',
     showFloatingButton: true,
     pinMode: 'page',
-    fabMinimized: false
+    fabMinimized: false,
+    fabPosition: null
   };
   let highestZIndex = 10;
   let lastHiddenNoteId = null;
@@ -30,6 +31,51 @@
   let saveTimeouts = new Map();
   let lastDeletedNote = null;
   let undoToastTimeout = null;
+
+  // Safe wrapper to prevent "Extension context invalidated" errors
+  const isExtensionValid = () => {
+    try {
+      return !!(typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id && chrome.storage && chrome.storage.local);
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const safeStorageGet = (keys, callback) => {
+    try {
+      if (!isExtensionValid()) return;
+      chrome.storage.local.get(keys, (res) => {
+        try {
+          if (!isExtensionValid() || (chrome.runtime && chrome.runtime.lastError)) return;
+          if (callback) callback(res || {});
+        } catch (_) { }
+      });
+    } catch (_) { }
+  };
+
+  const safeStorageSet = (data, callback) => {
+    try {
+      if (!isExtensionValid()) return;
+      chrome.storage.local.set(data, () => {
+        try {
+          if (!isExtensionValid() || (chrome.runtime && chrome.runtime.lastError)) return;
+          if (callback) callback();
+        } catch (_) { }
+      });
+    } catch (_) { }
+  };
+
+  const safeSendMessage = (message, callback) => {
+    try {
+      if (!isExtensionValid()) return;
+      chrome.runtime.sendMessage(message, (res) => {
+        try {
+          if (!isExtensionValid() || (chrome.runtime && chrome.runtime.lastError)) return;
+          if (callback) callback(res);
+        } catch (_) { }
+      });
+    } catch (_) { }
+  };
 
   const extractDomain = (url) => {
     if (!url) return '';
@@ -264,8 +310,8 @@
       if (key === 'W') {
         // Open Workspace shortcut
         e.preventDefault();
-        chrome.runtime.sendMessage({ action: 'OPEN_WORKSPACE' }, (res) => {
-          if (chrome.runtime.lastError || !res || !res.success) {
+        safeSendMessage({ action: 'OPEN_WORKSPACE' }, (res) => {
+          if (!res || !res.success) {
             // Standalone/testing fallback: if openPopup is unavailable, show the on-page notes overview popover
             if (fabEl) {
               toggleFabNotesPopover();
@@ -293,7 +339,7 @@
 
   // Load notes & settings from chrome.storage
   function loadFromStorage() {
-    chrome.storage.local.get(['notes', 'settings'], (res) => {
+    safeStorageGet(['notes', 'settings'], (res) => {
       if (res.settings) {
         currentSettings = { ...currentSettings, ...res.settings };
       }
@@ -323,36 +369,44 @@
       updateFabBadge();
       updateFabButtonState();
       updateFabVisibility();
+      applyFabPosition();
     });
   }
 
   // Listen for storage changes from other tabs or popup
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== 'local') return;
+  try {
+    if (isExtensionValid() && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        try {
+          if (!isExtensionValid() || area !== 'local') return;
 
-    if (changes.settings) {
-      currentSettings = { ...currentSettings, ...changes.settings.newValue };
-      updateFabVisibility();
-      if (canvasEl) {
-        canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
-      }
-    }
+          if (changes.settings) {
+            currentSettings = { ...currentSettings, ...changes.settings.newValue };
+            updateFabVisibility();
+            applyFabPosition();
+            if (canvasEl) {
+              canvasEl.style.display = currentSettings.notesVisible ? 'block' : 'none';
+            }
+          }
 
-    if (changes.notes) {
-      notesData = changes.notes.newValue || [];
-      let maxZ = 10;
-      notesData.forEach(n => {
-        const z = parseInt(n.zIndex, 10);
-        if (!isNaN(z) && z > maxZ && z < 100000) {
-          maxZ = z;
-        }
+          if (changes.notes) {
+            notesData = changes.notes.newValue || [];
+            let maxZ = 10;
+            notesData.forEach(n => {
+              const z = parseInt(n.zIndex, 10);
+              if (!isNaN(z) && z > maxZ && z < 100000) {
+                maxZ = z;
+              }
+            });
+            highestZIndex = maxZ;
+            renderCurrentPageNotes();
+            updateFabBadge();
+            updateFabButtonState();
+          }
+        } catch (_) { }
       });
-      highestZIndex = maxZ;
-      renderCurrentPageNotes();
-      updateFabBadge();
-      updateFabButtonState();
     }
-  });
+  } catch (_) { }
 
   // Render all notes belonging to the current domain
   function renderCurrentPageNotes() {
@@ -407,6 +461,16 @@
 
     fabEl.innerHTML = `
       <div class="fab-content" style="display: ${currentSettings.fabMinimized ? 'none' : 'flex'}; align-items: center; gap: 8px;">
+        <div class="fab-drag-handle" id="fab-drag-handle" title="Drag or use arrow keys to reposition toolbar" aria-label="Reposition toolbar" role="button" tabindex="0">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor" aria-hidden="true">
+            <circle cx="2" cy="2" r="1.2" />
+            <circle cx="6" cy="2" r="1.2" />
+            <circle cx="2" cy="7" r="1.2" />
+            <circle cx="6" cy="7" r="1.2" />
+            <circle cx="2" cy="12" r="1.2" />
+            <circle cx="6" cy="12" r="1.2" />
+          </svg>
+        </div>
         <button type="button" class="fab-btn fab-btn-primary" id="fab-add-btn" title="Add Sticky Note (Alt+Shift+N)" aria-label="Create new sticky note (Alt+Shift+N)">
           <span aria-hidden="true">➕</span>
           <span>New Note</span>
@@ -420,7 +484,7 @@
           <span aria-hidden="true">↘</span>
         </button>
       </div>
-      <button type="button" class="fab-btn fab-mini-toggle" id="fab-mini-btn" style="display: ${currentSettings.fabMinimized ? 'flex' : 'none'}; padding: 6px;" title="Open Sticky Notes Toolbar" aria-label="Expand NoteSticky toolbar">
+      <button type="button" class="fab-btn fab-mini-toggle" id="fab-mini-btn" style="display: ${currentSettings.fabMinimized ? 'flex' : 'none'}; padding: 6px;" title="Open Sticky Notes Toolbar (Drag to reposition)" aria-label="Expand NoteSticky toolbar">
         <span aria-hidden="true">📌</span>
       </button>
 
@@ -430,11 +494,25 @@
 
     shadowRoot.appendChild(fabEl);
 
+    // Apply saved position if exists
+    applyFabPosition();
+
     // Event listeners for FAB
     const addBtn = fabEl.querySelector('#fab-add-btn');
     const toggleBtn = fabEl.querySelector('#fab-toggle-btn');
     const collapseBtn = fabEl.querySelector('#fab-collapse-btn');
     const miniBtn = fabEl.querySelector('#fab-mini-btn');
+
+    // Make Floating Quick Toolbar movable and draggable
+    setupFabDragging(fabEl);
+    let resizeFabRaf = null;
+    window.addEventListener('resize', () => {
+      if (resizeFabRaf) cancelAnimationFrame(resizeFabRaf);
+      resizeFabRaf = requestAnimationFrame(() => {
+        resizeFabRaf = null;
+        clampFabPosition();
+      });
+    }, { passive: true });
 
     addBtn.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -478,7 +556,16 @@
 
     miniBtn.addEventListener('click', (e) => {
       e.stopPropagation();
+      e.preventDefault();
       toggleFabMinimize(false);
+    });
+
+    miniBtn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleFabMinimize(false);
+      }
     });
 
     // Close context popover on outside click
@@ -523,15 +610,472 @@
       const miniBtn = fabEl.querySelector('#fab-mini-btn');
       if (content) content.style.display = minimized ? 'none' : 'flex';
       if (miniBtn) miniBtn.style.display = minimized ? 'flex' : 'none';
+
+      // Keep toolbar within viewport bounds when expanding
+      if (!minimized) {
+        requestAnimationFrame(() => {
+          getFabDimensions(fabEl);
+          clampFabPosition();
+        });
+      }
     }
 
     if (save) {
-      chrome.storage.local.get(['settings'], (res) => {
+      safeStorageGet(['settings'], (res) => {
         const settings = res.settings || {};
         settings.fabMinimized = !!minimized;
-        chrome.storage.local.set({ settings });
+        safeStorageSet({ settings });
       });
     }
+  }
+
+  let cachedExpandedFabWidth = 205;
+
+  function getFabDimensions(fab = fabEl) {
+    if (!fab) return { width: currentSettings.fabMinimized ? 40 : cachedExpandedFabWidth, height: 40 };
+    const rect = fab.getBoundingClientRect();
+    const renderedWidth = rect.width || fab.offsetWidth;
+    const renderedHeight = rect.height || fab.offsetHeight;
+    if (!currentSettings.fabMinimized && renderedWidth > 50) {
+      cachedExpandedFabWidth = renderedWidth;
+    }
+    const width = renderedWidth || (currentSettings.fabMinimized ? 40 : cachedExpandedFabWidth);
+    const height = renderedHeight || 40;
+    return { width, height };
+  }
+
+  // Smooth dragging for Floating Quick Toolbar
+  function setupFabDragging(fab) {
+    let isDragging = false;
+    let isPointerDown = false;
+    let activePointerId = null;
+    let startX = 0;
+    let startY = 0;
+    let origLeft = 0;
+    let origTop = 0;
+    let didDrag = false;
+
+    const onPointerMove = (e) => {
+      if (!isPointerDown) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (!isDragging) {
+        if (Math.hypot(dx, dy) > 4) {
+          isDragging = true;
+          didDrag = true;
+          fab.classList.add('dragging');
+
+          try {
+            if (activePointerId !== null && fab.setPointerCapture) {
+              fab.setPointerCapture(activePointerId);
+            }
+          } catch (_) { }
+
+          const popover = fab.querySelector('#fab-notes-popover');
+          if (popover) popover.classList.remove('open');
+        } else {
+          return;
+        }
+      }
+
+      e.preventDefault();
+
+      let newLeft = origLeft + dx;
+      let newTop = origTop + dy;
+
+      const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const docHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      const dims = getFabDimensions(fab);
+      const fabWidth = dims.width;
+      const fabHeight = dims.height;
+
+      const minLeft = 10;
+      const maxLeft = Math.max(10, docWidth - fabWidth - 10);
+      const minTop = 10;
+      const maxTop = Math.max(10, docHeight - fabHeight - 10);
+
+      newLeft = Math.max(minLeft, Math.min(newLeft, maxLeft));
+      newTop = Math.max(minTop, Math.min(newTop, maxTop));
+
+      fab.style.left = `${newLeft}px`;
+      fab.style.top = `${newTop}px`;
+      fab.style.right = 'auto';
+      fab.style.bottom = 'auto';
+
+      // Dynamically update anchor class based on screen side during drag
+      const fabMid = newLeft + fabWidth / 2;
+      const isLeft = fabMid < docWidth / 2;
+      fab.classList.toggle('anchor-left', isLeft);
+      fab.classList.toggle('anchor-right', !isLeft);
+    };
+
+    const stopDrag = (e) => {
+      if (!isPointerDown) return;
+      isPointerDown = false;
+
+      const pId = (e && e.pointerId !== undefined) ? e.pointerId : activePointerId;
+      activePointerId = null;
+      try {
+        if (pId !== null && fab.releasePointerCapture && fab.hasPointerCapture && fab.hasPointerCapture(pId)) {
+          fab.releasePointerCapture(pId);
+        }
+      } catch (_) { }
+
+      window.removeEventListener('pointermove', onPointerMove, true);
+      window.removeEventListener('pointerup', stopDrag, true);
+      window.removeEventListener('pointercancel', stopDrag, true);
+      window.removeEventListener('blur', stopDrag);
+
+      if (isDragging) {
+        isDragging = false;
+        fab.classList.remove('dragging');
+
+        const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const dims = getFabDimensions(fab);
+        const fabWidth = dims.width;
+        const curLeft = parseFloat(fab.style.left);
+        const curTop = parseFloat(fab.style.top);
+
+        if (!isNaN(curLeft) && !isNaN(curTop)) {
+          const fabMid = curLeft + fabWidth / 2;
+          const isLeft = fabMid < docWidth / 2;
+          const side = isLeft ? 'left' : 'right';
+
+          if (side === 'left') {
+            fab.style.left = `${curLeft}px`;
+            fab.style.right = 'auto';
+            fab.style.top = `${curTop}px`;
+            fab.style.bottom = 'auto';
+            fab.classList.add('anchor-left');
+            fab.classList.remove('anchor-right');
+          } else {
+            const curRight = Math.max(10, docWidth - curLeft - fabWidth);
+            fab.style.right = `${curRight}px`;
+            fab.style.left = 'auto';
+            fab.style.top = `${curTop}px`;
+            fab.style.bottom = 'auto';
+            fab.classList.add('anchor-right');
+            fab.classList.remove('anchor-left');
+          }
+
+          currentSettings.fabPosition = {
+            side: side,
+            left: curLeft,
+            right: Math.max(10, docWidth - curLeft - fabWidth),
+            top: curTop
+          };
+
+          safeStorageGet(['settings'], (res) => {
+            const settings = res.settings || {};
+            settings.fabPosition = currentSettings.fabPosition;
+            safeStorageSet({ settings });
+          });
+        }
+
+        // Keep didDrag true briefly so the ensuing click event is swallowed
+        setTimeout(() => {
+          didDrag = false;
+        }, 80);
+      } else {
+        didDrag = false;
+      }
+    };
+
+    fab.addEventListener('pointerdown', (e) => {
+      // Only drag with primary mouse button or touch
+      if (e.button !== 0) return;
+
+      // Do not drag if clicking inside context popover
+      if (e.target.closest('#fab-notes-popover')) return;
+
+      isPointerDown = true;
+      activePointerId = e.pointerId;
+      startX = e.clientX;
+      startY = e.clientY;
+
+      const rect = fab.getBoundingClientRect();
+      origLeft = rect.left;
+      origTop = rect.top;
+
+      window.addEventListener('pointermove', onPointerMove, true);
+      window.addEventListener('pointerup', stopDrag, true);
+      window.addEventListener('pointercancel', stopDrag, true);
+      window.addEventListener('blur', stopDrag);
+    });
+
+    // Capture and prevent click events if a drag just occurred,
+    // or expand the toolbar if clicked while minimized
+    fab.addEventListener('click', (e) => {
+      if (didDrag) {
+        e.stopPropagation();
+        e.preventDefault();
+        didDrag = false;
+        return;
+      }
+
+      // If the toolbar is currently minimized and user clicked anywhere on it without dragging, expand/maximize it!
+      if (currentSettings.fabMinimized) {
+        e.stopPropagation();
+        e.preventDefault();
+        toggleFabMinimize(false);
+      }
+    }, true);
+
+    // Keyboard navigation for drag handle (Arrow keys to reposition, Shift+Arrow for larger jumps)
+    const dragHandle = fab.querySelector('#fab-drag-handle');
+    let keyboardSaveTimeout = null;
+
+    if (dragHandle) {
+      dragHandle.addEventListener('keydown', (e) => {
+        if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const step = e.shiftKey ? 50 : 15;
+        const rect = fab.getBoundingClientRect();
+        const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+        const docHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+        const dims = getFabDimensions(fab);
+        const fabWidth = dims.width;
+        const fabHeight = dims.height;
+
+        let curLeft = rect.left;
+        let curTop = rect.top;
+
+        if (e.key === 'ArrowUp') curTop -= step;
+        if (e.key === 'ArrowDown') curTop += step;
+        if (e.key === 'ArrowLeft') curLeft -= step;
+        if (e.key === 'ArrowRight') curLeft += step;
+
+        const minLeft = 10;
+        const maxLeft = Math.max(10, docWidth - fabWidth - 10);
+        const minTop = 10;
+        const maxTop = Math.max(10, docHeight - fabHeight - 10);
+
+        curLeft = Math.max(minLeft, Math.min(curLeft, maxLeft));
+        curTop = Math.max(minTop, Math.min(curTop, maxTop));
+
+        const fabMid = curLeft + fabWidth / 2;
+        const isLeft = fabMid < docWidth / 2;
+        const side = isLeft ? 'left' : 'right';
+
+        if (side === 'left') {
+          fab.style.left = `${curLeft}px`;
+          fab.style.right = 'auto';
+          fab.style.top = `${curTop}px`;
+          fab.style.bottom = 'auto';
+          fab.classList.add('anchor-left');
+          fab.classList.remove('anchor-right');
+        } else {
+          const curRight = Math.max(10, docWidth - curLeft - fabWidth);
+          fab.style.right = `${curRight}px`;
+          fab.style.left = 'auto';
+          fab.style.top = `${curTop}px`;
+          fab.style.bottom = 'auto';
+          fab.classList.add('anchor-right');
+          fab.classList.remove('anchor-left');
+        }
+
+        currentSettings.fabPosition = {
+          side: side,
+          left: curLeft,
+          right: Math.max(10, docWidth - curLeft - fabWidth),
+          top: curTop
+        };
+
+        // Debounce storage writes to avoid thrashing on repeated keypresses
+        if (keyboardSaveTimeout) clearTimeout(keyboardSaveTimeout);
+        keyboardSaveTimeout = setTimeout(() => {
+          keyboardSaveTimeout = null;
+          safeStorageGet(['settings'], (res) => {
+            const settings = res.settings || {};
+            settings.fabPosition = currentSettings.fabPosition;
+            safeStorageSet({ settings });
+          });
+        }, 250);
+      });
+
+      dragHandle.addEventListener('blur', () => {
+        if (keyboardSaveTimeout) {
+          clearTimeout(keyboardSaveTimeout);
+          keyboardSaveTimeout = null;
+          safeStorageGet(['settings'], (res) => {
+            const settings = res.settings || {};
+            settings.fabPosition = currentSettings.fabPosition;
+            safeStorageSet({ settings });
+          });
+        }
+      });
+    }
+  }
+
+  // Ensure Floating Quick Toolbar stays within visible viewport bounds
+  function clampFabPosition() {
+    if (!fabEl) return;
+    const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const docHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+    if (docWidth <= 0 || docHeight <= 0) return;
+
+    const dims = getFabDimensions(fabEl);
+    const fabWidth = dims.width;
+    const fabHeight = dims.height;
+
+    const minTop = 10;
+    const maxTop = Math.max(10, docHeight - fabHeight - 10);
+
+    const isLeftAnchored = fabEl.classList.contains('anchor-left') || (fabEl.style.left && fabEl.style.left !== 'auto');
+
+    if (isLeftAnchored && fabEl.style.left && fabEl.style.left !== 'auto') {
+      let curLeft = parseFloat(fabEl.style.left);
+      let curTop = parseFloat(fabEl.style.top);
+      if (isNaN(curLeft) || isNaN(curTop)) return;
+
+      const minLeft = 10;
+      const maxLeft = Math.max(10, docWidth - fabWidth - 10);
+      const clampedLeft = Math.max(minLeft, Math.min(curLeft, maxLeft));
+      const clampedTop = Math.max(minTop, Math.min(curTop, maxTop));
+
+      // Recalculate screen side after resize/clamping
+      const fabMid = clampedLeft + fabWidth / 2;
+      const shouldBeLeft = fabMid < docWidth / 2;
+
+      if (!shouldBeLeft) {
+        // Crossed over to right side of viewport on resize
+        const newRight = Math.max(10, docWidth - clampedLeft - fabWidth);
+        fabEl.style.right = `${newRight}px`;
+        fabEl.style.left = 'auto';
+        fabEl.style.top = `${clampedTop}px`;
+        fabEl.style.bottom = 'auto';
+        fabEl.classList.add('anchor-right');
+        fabEl.classList.remove('anchor-left');
+        if (currentSettings.fabPosition) {
+          currentSettings.fabPosition.side = 'right';
+          currentSettings.fabPosition.right = newRight;
+          currentSettings.fabPosition.left = clampedLeft;
+          currentSettings.fabPosition.top = clampedTop;
+        }
+      } else {
+        fabEl.style.left = `${clampedLeft}px`;
+        fabEl.style.right = 'auto';
+        fabEl.style.top = `${clampedTop}px`;
+        fabEl.style.bottom = 'auto';
+        fabEl.classList.add('anchor-left');
+        fabEl.classList.remove('anchor-right');
+        if (currentSettings.fabPosition) {
+          currentSettings.fabPosition.left = clampedLeft;
+          currentSettings.fabPosition.right = Math.max(10, docWidth - clampedLeft - fabWidth);
+          currentSettings.fabPosition.top = clampedTop;
+          currentSettings.fabPosition.side = 'left';
+        }
+      }
+    } else if (fabEl.style.right && fabEl.style.right !== 'auto') {
+      let curRight = parseFloat(fabEl.style.right);
+      let curTop = parseFloat(fabEl.style.top);
+      if (isNaN(curRight) || isNaN(curTop)) return;
+
+      const minRight = 10;
+      const maxRight = Math.max(10, docWidth - fabWidth - 10);
+      const clampedRight = Math.max(minRight, Math.min(curRight, maxRight));
+      const clampedTop = Math.max(minTop, Math.min(curTop, maxTop));
+
+      // Recalculate screen side after resize/clamping
+      const fabMid = docWidth - clampedRight - fabWidth / 2;
+      const shouldBeLeft = fabMid < docWidth / 2;
+
+      if (shouldBeLeft) {
+        // Crossed over to left side of viewport on resize
+        const newLeft = Math.max(10, docWidth - clampedRight - fabWidth);
+        fabEl.style.left = `${newLeft}px`;
+        fabEl.style.right = 'auto';
+        fabEl.style.top = `${clampedTop}px`;
+        fabEl.style.bottom = 'auto';
+        fabEl.classList.add('anchor-left');
+        fabEl.classList.remove('anchor-right');
+        if (currentSettings.fabPosition) {
+          currentSettings.fabPosition.side = 'left';
+          currentSettings.fabPosition.left = newLeft;
+          currentSettings.fabPosition.right = clampedRight;
+          currentSettings.fabPosition.top = clampedTop;
+        }
+      } else {
+        fabEl.style.right = `${clampedRight}px`;
+        fabEl.style.left = 'auto';
+        fabEl.style.top = `${clampedTop}px`;
+        fabEl.style.bottom = 'auto';
+        fabEl.classList.add('anchor-right');
+        fabEl.classList.remove('anchor-left');
+        if (currentSettings.fabPosition) {
+          currentSettings.fabPosition.right = clampedRight;
+          currentSettings.fabPosition.left = Math.max(10, docWidth - clampedRight - fabWidth);
+          currentSettings.fabPosition.top = clampedTop;
+          currentSettings.fabPosition.side = 'right';
+        }
+      }
+    }
+  }
+
+  // Apply saved position to Floating Quick Toolbar
+  function applyFabPosition() {
+    if (!fabEl) return;
+    if (currentSettings.fabPosition && typeof currentSettings.fabPosition.top === 'number') {
+      const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const dims = getFabDimensions(fabEl);
+      const fabWidth = dims.width;
+
+      let side = currentSettings.fabPosition.side;
+      if (!side) {
+        if (typeof currentSettings.fabPosition.left === 'number') {
+          const mid = currentSettings.fabPosition.left + fabWidth / 2;
+          side = mid < docWidth / 2 ? 'left' : 'right';
+        } else if (typeof currentSettings.fabPosition.right === 'number') {
+          const mid = docWidth - currentSettings.fabPosition.right - fabWidth / 2;
+          side = mid < docWidth / 2 ? 'left' : 'right';
+        } else {
+          side = 'right';
+        }
+      }
+
+      if (side === 'left') {
+        let leftVal = currentSettings.fabPosition.left;
+        if (typeof leftVal !== 'number' && typeof currentSettings.fabPosition.right === 'number') {
+          leftVal = docWidth - currentSettings.fabPosition.right - fabWidth;
+        }
+        if (typeof leftVal === 'number') {
+          fabEl.style.left = `${leftVal}px`;
+          fabEl.style.right = 'auto';
+          fabEl.style.top = `${currentSettings.fabPosition.top}px`;
+          fabEl.style.bottom = 'auto';
+          fabEl.classList.add('anchor-left');
+          fabEl.classList.remove('anchor-right');
+          clampFabPosition();
+          return;
+        }
+      } else {
+        let rightVal = currentSettings.fabPosition.right;
+        if (typeof rightVal !== 'number' && typeof currentSettings.fabPosition.left === 'number') {
+          rightVal = docWidth - currentSettings.fabPosition.left - fabWidth;
+        }
+        if (typeof rightVal === 'number') {
+          fabEl.style.right = `${rightVal}px`;
+          fabEl.style.left = 'auto';
+          fabEl.style.top = `${currentSettings.fabPosition.top}px`;
+          fabEl.style.bottom = 'auto';
+          fabEl.classList.add('anchor-right');
+          fabEl.classList.remove('anchor-left');
+          clampFabPosition();
+          return;
+        }
+      }
+    }
+
+    fabEl.style.left = '';
+    fabEl.style.top = '';
+    fabEl.style.right = '';
+    fabEl.style.bottom = '';
+    fabEl.classList.add('anchor-right');
+    fabEl.classList.remove('anchor-left');
   }
 
   function updateFabBadge() {
@@ -543,7 +1087,7 @@
       counter.style.display = count > 0 ? 'inline-block' : 'none';
     }
     // Notify background for extension icon badge
-    chrome.runtime.sendMessage({ action: 'UPDATE_BADGE' }).catch(() => { });
+    safeSendMessage({ action: 'UPDATE_BADGE' });
   }
 
   // Handle click on the Floating Quick Toolbar Hide/Show button
@@ -593,10 +1137,10 @@
     currentSettings.notesVisible = !shouldHideAll;
 
     // Save to storage
-    chrome.storage.local.get(['settings'], (res) => {
+    safeStorageGet(['settings'], (res) => {
       const settings = res.settings || {};
       settings.notesVisible = currentSettings.notesVisible;
-      chrome.storage.local.set({ settings, notes: notesData }, () => {
+      safeStorageSet({ settings, notes: notesData }, () => {
         updateFabBadge();
       });
     });
@@ -699,6 +1243,27 @@
         }
       });
     });
+
+    const rect = fabEl.getBoundingClientRect();
+    const docWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+    const docHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+
+    const spaceAbove = rect.top;
+    const spaceBelow = docHeight - rect.bottom;
+    const spaceLeft = rect.right;
+    const spaceRight = docWidth - rect.left;
+
+    if (spaceAbove < 260 && spaceBelow >= spaceAbove) {
+      popover.classList.add('popover-down');
+    } else {
+      popover.classList.remove('popover-down');
+    }
+
+    if (spaceLeft < 220 && spaceRight > spaceLeft) {
+      popover.classList.add('popover-align-left');
+    } else {
+      popover.classList.remove('popover-align-left');
+    }
 
     popover.classList.add('open');
   }
@@ -1701,7 +2266,7 @@
   }
 
   function saveNotesToStorage() {
-    chrome.storage.local.set({ notes: notesData }, () => {
+    safeStorageSet({ notes: notesData }, () => {
       updateFabBadge();
     });
   }
@@ -1711,9 +2276,7 @@
     if (saveTimeouts.size > 0) {
       saveTimeouts.forEach((timer) => clearTimeout(timer));
       saveTimeouts.clear();
-      try {
-        chrome.storage.local.set({ notes: notesData });
-      } catch (_) { }
+      safeStorageSet({ notes: notesData });
     }
   }
 
@@ -1745,7 +2308,9 @@
   }
 
   // Message Handler for commands from background/popup
-  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  try {
+    if (isExtensionValid() && chrome.runtime?.onMessage) {
+      chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'CREATE_NOTE') {
       createNote(request.text || '', request.x || null, request.y || null);
       sendResponse({ success: true });
@@ -1834,7 +2399,9 @@
       sendResponse({ success: !!noteEl });
       return true;
     }
-  });
+      });
+    }
+  } catch (_) { }
 
   // Start initialization when document is ready
   if (document.readyState === 'loading') {

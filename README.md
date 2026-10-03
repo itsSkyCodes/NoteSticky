@@ -35,6 +35,11 @@ A powerful, aesthetic, modern **Google Chrome Extension (Manifest V3)** that all
     - *Screen Mode*: Stays fixed in the viewport like a floating HUD.
   - **Minimize to Tab**: Collapse notes into a compact mini bar to keep your workspace tidy.
   - **Undo Delete Toast**: Accidentally closed a note? Instant 4-second Undo toast restores it.
+  - **🖱️ Draggable Floating Quick Toolbar**:
+    - Reposition anywhere on your screen using smooth mouse/touch dragging or keyboard arrow keys (<kbd>Arrow</kbd> / <kbd>Shift+Arrow</kbd>).
+    - Collapses toward the nearest screen edge (leftward on the left side, rightward on the right side) with mirrored collapse arrow glyphs (`↘` / `↙`).
+    - Tap anywhere on the circular minimized button (or press <kbd>Enter</kbd> / <kbd>Space</kbd>) to instantly expand and maximize.
+    - Automatically re-anchors to the closer screen boundary on window resize and persists position across tabs.
 
 - **🎛️ Popup Dashboard**:
   - Accessible directly from your Chrome extension toolbar.
@@ -130,6 +135,11 @@ NoteSticky/
 ## 📦 Version History & Release Notes
 
 ### v1.1.0 (Current Release)
+- **🖱️ Draggable Floating Quick Toolbar**: The floating action bar is now freely repositionable anywhere on the screen with smooth mouse/touch dragging and accessible keyboard navigation (<kbd>Arrow</kbd> / <kbd>Shift+Arrow</kbd>). Position is preserved and clamped within viewport bounds.
+- **↔️ Nearest-Screen-Edge Directional Collapse & Expand**: The toolbar intelligently detects its screen position and collapses toward the closest screen edge (minimizes rightward when on the right half, leftward when on the left half) and expands in reverse with matching directional animations and a mirrored collapse arrow (`↘` / `↙`).
+- **📌 Instant Tap-to-Maximize**: Clicking anywhere on the circular minimized button or pressing <kbd>Enter</kbd> / <kbd>Space</kbd> immediately restores the full toolbar.
+- **🛡️ Extension Context Invalidation Guard**: Hardened all Chrome MV3 storage and runtime communication with safe wrappers, preventing `Extension context invalidated` uncaught errors when the extension updates in the background.
+- **📐 Adaptive Notes Overview Popover**: The page notes list popover dynamically calculates available viewport space in all directions to prevent edge clipping on smaller screens.
 - **⌨️ Global Workspace Shortcut**: Added configurable <kbd>Alt+Shift+W</kbd> (Mac: <kbd>MacCtrl+Shift+W</kbd>) shortcut to instantly toggle the NoteSticky Workspace dashboard from any webpage.
 - **🌐 Domain-Wide Scoping**: Sticky notes are now scoped per domain, persisting notes seamlessly across query parameters, paths, and subpages on the same site.
 - **🎛️ Independent Floating Toolbar**: Notes can now be created and managed directly within the workspace dashboard even when the on-page floating toolbar is disabled in Settings.
